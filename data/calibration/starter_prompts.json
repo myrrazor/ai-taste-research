@@ -1,0 +1,205 @@
+{
+  "schema": "nanotaste/prompt-set/1.0",
+  "items": [
+    {
+      "id": "aesthetic_001",
+      "domain": "aesthetic",
+      "prompt": "Design a landing page hero for a pour-over coffee subscription."
+    },
+    {
+      "id": "aesthetic_002",
+      "domain": "aesthetic",
+      "prompt": "Design a settings screen for a focused writing app."
+    },
+    {
+      "id": "aesthetic_003",
+      "domain": "aesthetic",
+      "prompt": "Design a pricing section for a small developer tool."
+    },
+    {
+      "id": "aesthetic_004",
+      "domain": "aesthetic",
+      "prompt": "Design an onboarding screen for a personal finance tracker."
+    },
+    {
+      "id": "aesthetic_005",
+      "domain": "aesthetic",
+      "prompt": "Design a product-card grid for a handmade furniture store."
+    },
+    {
+      "id": "aesthetic_006",
+      "domain": "aesthetic",
+      "prompt": "Design a dashboard overview for an AI evaluation tool."
+    },
+    {
+      "id": "aesthetic_007",
+      "domain": "aesthetic",
+      "prompt": "Design a mobile first event detail page for a jazz venue."
+    },
+    {
+      "id": "aesthetic_008",
+      "domain": "aesthetic",
+      "prompt": "Design an empty state for a project-management app."
+    },
+    {
+      "id": "aesthetic_009",
+      "domain": "aesthetic",
+      "prompt": "Design a comparison table for local LLM hosting providers."
+    },
+    {
+      "id": "aesthetic_010",
+      "domain": "aesthetic",
+      "prompt": "Design a checkout confirmation page for a bike repair shop."
+    },
+    {
+      "id": "writing_001",
+      "domain": "writing",
+      "prompt": "Write a short launch announcement for NanoTaste."
+    },
+    {
+      "id": "writing_002",
+      "domain": "writing",
+      "prompt": "Write a README intro for a CLI that compares AI drafts."
+    },
+    {
+      "id": "writing_003",
+      "domain": "writing",
+      "prompt": "Write a product update note about approval-gated taste edits."
+    },
+    {
+      "id": "writing_004",
+      "domain": "writing",
+      "prompt": "Write a one-paragraph explanation of why generic AI prose feels bad."
+    },
+    {
+      "id": "writing_005",
+      "domain": "writing",
+      "prompt": "Write an error message for a missing TASTE.md file."
+    },
+    {
+      "id": "writing_006",
+      "domain": "writing",
+      "prompt": "Write a short note asking a user to pick their favorite candidate."
+    },
+    {
+      "id": "writing_007",
+      "domain": "writing",
+      "prompt": "Write a changelog entry for adding calibration evaluation."
+    },
+    {
+      "id": "writing_008",
+      "domain": "writing",
+      "prompt": "Write a tooltip for a score-reasons panel."
+    },
+    {
+      "id": "writing_009",
+      "domain": "writing",
+      "prompt": "Write a concise explanation of TasteRouter."
+    },
+    {
+      "id": "writing_010",
+      "domain": "writing",
+      "prompt": "Write a short rejection reason for a vague landing-page headline."
+    },
+    {
+      "id": "product_001",
+      "domain": "product",
+      "prompt": "Define the first useful loop for a taste-calibration tool."
+    },
+    {
+      "id": "product_002",
+      "domain": "product",
+      "prompt": "Define a success metric for comparing NanoTaste to human choices."
+    },
+    {
+      "id": "product_003",
+      "domain": "product",
+      "prompt": "Describe the smallest useful taste file editor."
+    },
+    {
+      "id": "product_004",
+      "domain": "product",
+      "prompt": "Design the first workflow for collecting human picks."
+    },
+    {
+      "id": "product_005",
+      "domain": "product",
+      "prompt": "Define a publishable demo for a taste-aware agent."
+    },
+    {
+      "id": "product_006",
+      "domain": "product",
+      "prompt": "Describe when the project should graduate to a Hermes fork."
+    },
+    {
+      "id": "product_007",
+      "domain": "product",
+      "prompt": "Define the smallest useful user feedback loop for TasteUpdater."
+    },
+    {
+      "id": "product_008",
+      "domain": "product",
+      "prompt": "Choose the first audience for this open-source project."
+    },
+    {
+      "id": "product_009",
+      "domain": "product",
+      "prompt": "Define what counts as a failed taste experiment."
+    },
+    {
+      "id": "product_010",
+      "domain": "product",
+      "prompt": "Describe a narrow product wedge for AI coding taste."
+    },
+    {
+      "id": "code_001",
+      "domain": "code",
+      "prompt": "Implement a parser for TASTE.md sections."
+    },
+    {
+      "id": "code_002",
+      "domain": "code",
+      "prompt": "Implement a scorer that penalizes forbidden moves."
+    },
+    {
+      "id": "code_003",
+      "domain": "code",
+      "prompt": "Implement a CLI command that writes JSONL run records."
+    },
+    {
+      "id": "code_004",
+      "domain": "code",
+      "prompt": "Implement a function that discovers taste files by walking upward."
+    },
+    {
+      "id": "code_005",
+      "domain": "code",
+      "prompt": "Implement a calibration evaluator that compares human and agent picks."
+    },
+    {
+      "id": "code_006",
+      "domain": "code",
+      "prompt": "Implement a TasteRouter for domain-specific rules."
+    },
+    {
+      "id": "code_007",
+      "domain": "code",
+      "prompt": "Implement a TasteUpdater that creates pending markdown proposals."
+    },
+    {
+      "id": "code_008",
+      "domain": "code",
+      "prompt": "Implement tests for a deterministic candidate generator."
+    },
+    {
+      "id": "code_009",
+      "domain": "code",
+      "prompt": "Implement a data model for calibration candidates."
+    },
+    {
+      "id": "code_010",
+      "domain": "code",
+      "prompt": "Implement an evaluation report renderer."
+    }
+  ]
+}

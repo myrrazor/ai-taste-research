@@ -1,0 +1,49 @@
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - testing
+      - dev
+      - "chore/**"
+      - "feat/**"
+      - "fix/**"
+      - "docs/**"
+  schedule:
+    - cron: "37 9 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL / ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - python
+          - actions
+    steps:
+      - name: Check out repository
+        # actions/checkout v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        # github/codeql-action v4.36.2 peeled commit
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL analysis
+        # github/codeql-action v4.36.2 peeled commit
+        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
