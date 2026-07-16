@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-taste-research"
+version = "0.1.0rc0"
+description = "Lightweight experiments for AI taste files and output selection."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Master Hit" }]
+
+[project.urls]
+Homepage = "https://github.com/myrrazor/ai-taste-research"
+Repository = "https://github.com/myrrazor/ai-taste-research"
+Issues = "https://github.com/myrrazor/ai-taste-research/issues"
+
+[project.scripts]
+nanotaste = "nanotaste.cli:main"
+
+[tool.setuptools.package-data]
+"nanotaste.rc0" = ["rc0_invariants.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["nanotaste"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = false
