@@ -1,0 +1,115 @@
+{
+  "schema": "nanotaste/rc0-invariant-manifest/1.0",
+  "project_id": "NANOTASTE",
+  "release": "0.1.0-pre-alpha",
+  "controlling_artifacts": {
+    "plan_sha256": "974f93e0ce9a4c2a76902752b40f1d1de8a41f00ccab12ca628ed6dfe28d7e70",
+    "review_sha256": "04831263241123a3ffd9ec4a13ca6b49cc2a89e587926ecfb3444641e8810410"
+  },
+  "versions": {
+    "contract_registry": "nanotaste-rc0-contracts/1",
+    "canonical_json_algorithm": "nanotaste-canonical-json/1",
+    "digest_algorithm": "sha256/1",
+    "ledger_algorithm": "nanotaste-hash-chain-ledger/1",
+    "review_derivation_algorithm": "nanotaste-review-derivation/1",
+    "terminal_transition_algorithm": "nanotaste-terminal-transition/1",
+    "privacy_scan_algorithm": "nanotaste-private-pattern-scan/1",
+    "control_tool": "nanotaste-rc0/0.1.0"
+  },
+  "contract_schemas": [
+    "nanotaste/rc0-trust-anchor/1.0",
+    "nanotaste/rc0-control-plane-preflight/1.0",
+    "nanotaste/rc0-codeowner-identity/1.0",
+    "nanotaste/rc0-governance-bootstrap/1.0",
+    "nanotaste/rc0-resource-binding/1.0",
+    "nanotaste/rc0-operation-authorization/1.0",
+    "nanotaste/rc0-action-ledger/1.0",
+    "nanotaste/rc0-outcome-unknown/1.0",
+    "nanotaste/rc0-expected-state/1.0",
+    "nanotaste/rc0-repository-security-state/1.0",
+    "nanotaste/rc0-history-scan/1.0",
+    "nanotaste/rc0-github-surface-capabilities/1.0",
+    "nanotaste/rc0-github-surface-inventory/1.0",
+    "nanotaste/rc0-security-contact-test/1.0",
+    "nanotaste/rc0-build-provenance/1.0",
+    "nanotaste/rc0-hosted-artifact/1.0",
+    "nanotaste/rc0-candidate-review-packet/1.0",
+    "nanotaste/rc0-review-result/1.0",
+    "nanotaste/rc0-aggregate-candidate/1.0",
+    "nanotaste/rc0-final-packet-payload/1.0",
+    "nanotaste/rc0-detached-digest/1.0",
+    "nanotaste/rc0-terminal-transition/1.0",
+    "nanotaste/rc0-review-derivation/1.0"
+  ],
+  "pr_topology": {
+    "IMPLEMENTATION_INTEGRATION_PR": {"cardinality": "exactly_one", "counts_toward_integration": true},
+    "PROMOTION_INTEGRATION_PR": {"cardinality": "exactly_one", "counts_toward_integration": true, "merge_sha_is_release_candidate": true},
+    "FORK_SAFETY_TEST_PR": {"cardinality": "at_most_one", "post_visibility_only": true, "must_remain_unmerged": true},
+    "INCIDENT_RECOVERY_PR": {"cardinality": "explicit_authorization_only", "invalidates_current_attempt": true}
+  },
+  "governance_bootstrap": {
+    "branch": "chore/rc0-governance-bootstrap",
+    "parent_commit": "99001300639fe36b8ee0066499d9cea7542f44ef",
+    "changed_paths": [".github/CODEOWNERS"],
+    "codeowners_path": ".github/CODEOWNERS",
+    "codeowners_mode": "100644",
+    "codeowners_encoding": "UTF-8",
+    "codeowners_line_endings": "LF",
+    "codeowners_final_newline": true,
+    "codeowners_blob_sha256": "2e1c312b049fb21e09939ab27c5e50601d558bf99f78b3a507b8a66ab48f192c",
+    "required_base_branches": ["testing", "main"]
+  },
+  "reviewer_separation": {
+    "pr_author_must_differ_from_reviewer": true,
+    "reviewer_login": "@masterhit",
+    "reviewer_identity_requires_durable_binding": true,
+    "self_approval_prohibited": true
+  },
+  "required_check_contexts": [
+    "ubuntu-latest / Python 3.11",
+    "ubuntu-latest / Python 3.12",
+    "ubuntu-latest / Python 3.13",
+    "ubuntu-latest / Python 3.14",
+    "windows-latest / Python 3.14",
+    "macos-latest / Python 3.14",
+    "Canonical artifact",
+    "Artifact smoke",
+    "CodeQL / python",
+    "CodeQL / actions",
+    "Dependency Review"
+  ],
+  "github_surface_capabilities": {
+    "api_exportable": "must_complete_paginated_api_inventory",
+    "metadata_only": "must_bind_metadata_and_limitations",
+    "manual_or_ui_only": "must_supply_bound_owner_evidence",
+    "unsupported": "fail_closed"
+  },
+  "required_surface_states": {
+    "repository_visibility": "private",
+    "pages": "disabled",
+    "wiki": "disabled",
+    "tags": "zero",
+    "releases": "zero",
+    "packages": "zero",
+    "deployments": "zero",
+    "environments": "zero",
+    "publication_secrets": "zero",
+    "self_hosted_runners": "zero",
+    "publication_workflows": "zero"
+  },
+  "prohibited_publication_operations": [
+    "change_repository_visibility",
+    "create_tag",
+    "create_github_release",
+    "publish_package",
+    "publish_pypi",
+    "deploy",
+    "enable_pages",
+    "create_environment",
+    "create_public_fork_test",
+    "add_publication_secret",
+    "grant_id_token_write",
+    "grant_packages_write",
+    "grant_contents_write"
+  ]
+}
