@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+Fixes for the pain points found by a hostile review pass. NanoTaste stays a
+research harness with a lexical critic; none of these changes add a preference
+model or make it a selection gate.
+
+### Added
+
+- `nanotaste --version` / `-V`, backed by `nanotaste.__version__` (tested against
+  `pyproject.toml`).
+- Descriptions for every command and flag in `--help`, plus a taste-discovery and
+  input-file epilog on the commands that read files.
+- `run --candidate-file PATH` (repeatable) to score file candidates alongside
+  inline `--candidate` text; records list the files as `candidate_files`.
+- `--no-taste` for an explicit no-rules baseline run.
+- `--allow-outside-paths` to opt into reading candidate/edit files from outside
+  the working directory.
+- Secret redaction of JSONL run records (`nanotaste.redaction`): OpenAI/Anthropic
+  `sk-` keys, GitHub, AWS, Slack, and Google tokens, JWTs, bearer tokens, PEM
+  private keys, and `key = value` secret assignments become `[REDACTED-...]`.
+- A stderr note when taste rules are discovered outside the working directory,
+  and a tie disclosure in the readable result header.
+
+### Changed
+
+- Missing taste files are an error with a message that names the search path,
+  instead of silently scoring against an empty profile.
+- Candidate files and `propose-update` inputs must resolve inside the working
+  directory (symlinks included) unless `--allow-outside-paths` is passed.
+- Forbidden words of four or more letters also match simple inflections
+  (`-s`, `-es`, `-ed`, `-ing`, `-ly`, `-ness`), so `"seamless"` catches
+  `seamlessly`.
+- Positive taste credit is capped at the candidate's count of eligible words not
+  copied from the rules (echo guard), so trivial keyword stuffing no longer beats
+  a concrete on-brief draft.
+- `--taste-dir` is honored when `--taste-file` is also given (it used to be
+  ignored).
+- `examples/TASTE.example.md` forbids the generic filler phrases under `general`
+  so the built-in generator's filler draft loses in every domain, including
+  `--domain product`; the generator also strips leading `define`, `describe`,
+  `choose`, and `explain` from prompts.
+- README, release notes, and claim lock state plainly that calibration against
+  synthetic drafts is a smoke test, not evidence of alignment.
+
 ## 0.1.0-rc0 - 2026-07-16
 
 RC0 prepares `0.1.0` as a pre-alpha research scaffold. It does not make a validated
