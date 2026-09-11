@@ -50,8 +50,20 @@ Explicit input overrides are treated as deliberate operator choices:
   under that explicit file's parent `taste/` directory.
 - `--taste-dir` may be absolute or relative, but domain file discovery must stay
   inside that directory after symlink resolution.
-- Candidate files, prompt-set files, calibration run files, and pick files must
-  resolve to regular files.
+- Candidate files (`compare --candidates`, `run --candidate-file`) and the
+  `propose-update` `--before`/`--after` files must resolve to regular files
+  inside the working directory after symlink resolution. Absolute paths,
+  `..` traversal, and symlinks that leave the working directory fail closed
+  with an error that does not echo the target's content. `--allow-outside-paths`
+  is the explicit opt-out.
+- Prompt-set files, calibration run files, and pick files must resolve to
+  regular files. They are schema-validated JSON and their content is never
+  echoed, so they are not confined to the working directory.
+
+Taste discovery never succeeds silently with no rules: when neither an explicit
+file nor a discovered `TASTE.md`/`taste/<domain>.md` exists, the command fails
+and names the search path. `--no-taste` is the explicit no-rules baseline. When
+rules are discovered outside the working directory, a note goes to stderr.
 
 Output targets must not be symlinks. NanoTaste writes to a temporary file in the
 same directory, flushes it, and replaces the target. Output directories are
@@ -123,6 +135,15 @@ NanoTaste stores decoded text faithfully after strict UTF-8 decoding. Invalid
 UTF-8 input is rejected with a user-facing input error. Candidate text, prompts,
 and records are not mutated for storage simply because they contain terminal
 control characters.
+
+The one storage mutation is secret redaction of JSONL run records. Before a
+record is appended, every string value is scanned for a fixed list of
+credential shapes (OpenAI/Anthropic-style `sk-` keys, GitHub, AWS, Slack, and
+Google tokens, JWTs, bearer tokens, PEM private key blocks, and
+`api_key = value` style assignments) and matches are replaced with
+`[REDACTED-<kind>]`. The list lives in `nanotaste/redaction.py`. It is a guard
+against pasting a key into a candidate by accident, not a secret scanner:
+anything outside those shapes is stored verbatim, and stdout is never altered.
 
 Terminal rendering is separate from storage. Human-readable CLI output escapes
 display-manipulation characters before printing:

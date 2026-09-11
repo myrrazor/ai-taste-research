@@ -21,9 +21,16 @@ calibration records.
 - The lexical critic has not been calibrated against held-out human judgments.
 - A score or score margin is not a probability, confidence, or uncertainty estimate.
 - Starter prompts and synthetic candidates are not research-grade evaluation data.
+- A `calibrate evaluate` agreement rate is computed against synthetic generator drafts
+  unless a prompt set supplies candidates; it is a workflow smoke test, not evidence of
+  taste alignment, and is not an accuracy result.
+- The critic's inflection matching is a fixed suffix table and its echo guard only
+  defeats trivial keyword stuffing; neither is language understanding.
+- Record redaction covers a fixed list of credential shapes and is not a secret scanner.
 - The current calibration bundle does not physically separate reviewer and private data.
 - Upward taste-file discovery is part of the privacy boundary and can read a parent
-  wrapper's taste file unless the caller supplies an explicit file.
+  wrapper's taste file unless the caller supplies an explicit file. NanoTaste prints a
+  stderr note when that happens and fails when no taste file exists at all.
 - Local test output is not hosted CI evidence.
 - Historical model-review records are advisory snapshots, not proof of correctness.
 

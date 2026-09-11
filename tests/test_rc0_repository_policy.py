@@ -5,6 +5,7 @@ import tomllib
 import unittest
 from pathlib import Path
 
+import nanotaste
 from nanotaste.rc0.invariants import load_invariant_manifest
 from nanotaste.rc0.privacy import require_clean, scan_worktree
 
@@ -79,12 +80,24 @@ class RepositoryPolicyTests(unittest.TestCase):
         release_notes = (ROOT / "RELEASE_NOTES_RC0.md").read_text()
 
         self.assertEqual(metadata["project"]["version"], "0.1.0rc0")
+        self.assertEqual(metadata["project"]["version"], nanotaste.__version__)
         self.assertEqual(metadata["project"]["urls"]["Repository"], repository_url)
         self.assertIn(repository_url, readme)
         self.assertIn("v0.1.0-rc0", readme)
         self.assertIn("has not demonstrated human preference alignment", readme)
         self.assertIn("v0.1.0-rc0", release_notes)
         self.assertIn("not probabilities", release_notes)
+
+    def test_readme_documents_the_real_cli_surface_and_calibration_limits(self) -> None:
+        readme = (ROOT / "README.md").read_text()
+        release_notes = (ROOT / "RELEASE_NOTES_RC0.md").read_text()
+        for flag in ("--version", "--candidate-file", "--candidates", "--no-taste",
+                     "--allow-outside-paths"):
+            self.assertIn(flag, readme, flag)
+        self.assertNotIn("candidate-file, calibration, and update-proposal commands", readme)
+        for text in (readme, release_notes):
+            self.assertIn("synthetic", text)
+            self.assertIn("not evidence", text)
 
 
 if __name__ == "__main__":

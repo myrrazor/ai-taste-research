@@ -16,7 +16,7 @@ RC0 is the first public candidate for AI Taste Research. It packages NanoTaste a
 
 NanoTaste demonstrates workflow mechanics. It has not demonstrated human preference alignment, does not learn or train a preference model, and has not calibrated its lexical critic against held-out human judgments. Scores are deterministic heuristic totals, not probabilities, confidence values, or uncertainty estimates.
 
-The built-in candidates and starter prompts are synthetic smoke-test material, not research-grade evaluation data. The current calibration bundle does not physically separate reviewer and private data. Upward `TASTE.md` discovery can read from a parent wrapper unless the caller supplies an explicit path. Local test output is not hosted CI evidence, and historical model-review records are advisory.
+The built-in candidates and starter prompts are synthetic smoke-test material, not research-grade evaluation data. The `calibrate` workflow judges those synthetic drafts unless a prompt set supplies real candidates, so a calibration agreement rate is a workflow smoke test and not evidence of taste alignment; it is not science and must not be quoted as an accuracy result. The current calibration bundle does not physically separate reviewer and private data. Upward `TASTE.md` discovery can read from a parent wrapper unless the caller supplies an explicit path. Local test output is not hosted CI evidence, and historical model-review records are advisory.
 
 [`docs/RC0_CLAIMS.md`](docs/RC0_CLAIMS.md) is the authoritative claim lock.
 
