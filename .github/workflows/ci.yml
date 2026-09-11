@@ -177,8 +177,12 @@ jobs:
           else
             . .venv-smoke/Scripts/activate
           fi
+          nanotaste --version
           nanotaste --help
+          nanotaste run --help
           nanotaste run --domain design --prompt "Design a landing page" \
+            --taste-file examples/TASTE.example.md --no-record --json
+          nanotaste run --domain product --prompt "Define the first useful loop" \
             --taste-file examples/TASTE.example.md --no-record --json
           mkdir -p .nanotaste/ci-smoke/candidates
           printf 'This seamlessly empowers teams.' > .nanotaste/ci-smoke/candidates/a.md
