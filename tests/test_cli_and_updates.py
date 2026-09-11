@@ -1,7 +1,9 @@
+import argparse
 import json
+import os
 import sys
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
@@ -9,7 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import unittest
 
-from nanotaste.cli import main
+from nanotaste import __version__
+from nanotaste.cli import _build_parser, main
+from nanotaste.schema import TasteProfile
 from nanotaste.update import propose_update, write_proposal
 
 
@@ -423,6 +427,7 @@ class CliAndUpdateTests(unittest.TestCase):
                         "--candidates",
                         str(a),
                         str(b),
+                        "--allow-outside-paths",
                         "--no-record",
                         "--json",
                     ]
@@ -450,11 +455,259 @@ class CliAndUpdateTests(unittest.TestCase):
                         str(after),
                         "--output-dir",
                         str(root / "updates"),
+                        "--allow-outside-paths",
                     ]
                 )
 
             self.assertEqual(status, 0)
             self.assertTrue((root / "updates" / "before.md").exists())
+
+    def test_version_flag_prints_package_version(self):
+        for flag in ("--version", "-V"):
+            with self.subTest(flag=flag):
+                with redirect_stdout(StringIO()) as output:
+                    with self.assertRaises(SystemExit) as raised:
+                        main([flag])
+
+                self.assertEqual(raised.exception.code, 0)
+                self.assertEqual(output.getvalue().strip(), f"nanotaste {__version__}")
+
+    def test_top_level_help_is_clean(self):
+        with redirect_stdout(StringIO()) as output:
+            with self.assertRaises(SystemExit) as raised:
+                main(["--help"])
+
+        self.assertEqual(raised.exception.code, 0)
+        text = output.getvalue()
+        for expected in ("-V, --version", "run", "compare", "propose-update", "calibrate"):
+            self.assertIn(expected, text)
+        self.assertNotIn("--candidate", text)
+        self.assertNotIn("--taste-file", text)
+
+    def test_every_subcommand_flag_has_help_text(self):
+        parser = _build_parser()
+        missing = [
+            f"{command}: {'/'.join(action.option_strings) or action.dest}"
+            for command, command_parser in _all_subparsers(parser)
+            for action in command_parser._actions
+            if not action.help
+        ]
+        self.assertEqual(missing, [])
+
+    def test_run_candidate_file_reads_files_after_inline_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "TASTE.md").write_text(
+                '# TASTE.md\n\n## Forbidden Moves\n\n### writing\n- "seamless"\n',
+                encoding="utf-8",
+            )
+            (root / "good.md").write_text("Compare three drafts and record why.", encoding="utf-8")
+            (root / "slop.md").write_text("This seamlessly empowers teams.", encoding="utf-8")
+
+            with _working_directory(root), redirect_stdout(StringIO()) as output:
+                status = main(
+                    [
+                        "run",
+                        "--domain",
+                        "writing",
+                        "--prompt",
+                        "Write a launch note",
+                        "--candidate",
+                        "Inline draft that seamlessly ships.",
+                        "--candidate-file",
+                        "slop.md",
+                        "--candidate-file",
+                        "good.md",
+                        "--no-record",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(status, 0)
+            payload = json.loads(output.getvalue())
+            self.assertEqual(payload["candidate_files"], ["slop.md", "good.md"])
+            self.assertEqual(payload["selected_candidate"]["index"], 2)
+            self.assertEqual(
+                payload["selected_candidate"]["text"], "Compare three drafts and record why."
+            )
+            self.assertEqual(payload["rejected_candidates"][0]["index"], 0)
+            self.assertIn("Inline draft", payload["rejected_candidates"][0]["text"])
+
+    def test_run_fails_clearly_when_no_taste_file_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with _working_directory(Path(tmp)):
+                with redirect_stdout(StringIO()) as stdout, redirect_stderr(StringIO()) as stderr:
+                    status = main(
+                        [
+                            "run",
+                            "--domain",
+                            "writing",
+                            "--prompt",
+                            "Write a note",
+                            "--candidate",
+                            "A",
+                            "--candidate",
+                            "B",
+                            "--no-record",
+                        ]
+                    )
+
+            self.assertEqual(status, 1)
+            self.assertEqual(stdout.getvalue(), "")
+            message = stderr.getvalue()
+            self.assertIn("no taste file found for domain 'writing'", message)
+            self.assertIn("TASTE.md", message)
+            self.assertIn("--taste-file", message)
+            self.assertIn("--no-taste", message)
+
+    def test_no_taste_flag_runs_an_explicit_empty_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "TASTE.md").write_text(
+                '# TASTE.md\n\n## Forbidden Moves\n\n### writing\n- "seamless"\n',
+                encoding="utf-8",
+            )
+            with _working_directory(root), redirect_stdout(StringIO()) as output:
+                status = main(
+                    [
+                        "run",
+                        "--no-taste",
+                        "--domain",
+                        "writing",
+                        "--prompt",
+                        "Write a note",
+                        "--candidate",
+                        "This seamlessly empowers teams.",
+                        "--candidate",
+                        "Plain draft.",
+                        "--no-record",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(status, 0)
+            payload = json.loads(output.getvalue())
+            self.assertEqual(payload["selected_candidate"]["index"], 0)
+            self.assertEqual(payload["selected_candidate"]["reasons"], [])
+            self.assertEqual(payload["taste_hash"], TasteProfile.empty().digest)
+
+    def test_no_taste_and_taste_file_are_mutually_exclusive(self):
+        with redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                main(
+                    [
+                        "run",
+                        "--no-taste",
+                        "--taste-file",
+                        "TASTE.md",
+                        "--prompt",
+                        "x",
+                        "--candidate",
+                        "a",
+                        "--candidate",
+                        "b",
+                    ]
+                )
+
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_readable_output_discloses_ties(self):
+        with redirect_stdout(StringIO()) as output:
+            status = main(
+                [
+                    "run",
+                    "--no-taste",
+                    "--prompt",
+                    "Pick one",
+                    "--candidate",
+                    "first",
+                    "--candidate",
+                    "second",
+                    "--candidate",
+                    "third",
+                    "--no-record",
+                ]
+            )
+
+        self.assertEqual(status, 0)
+        self.assertIn(
+            "Selected candidate #0 (score 0; tied with #1, #2, earlier candidate wins)",
+            output.getvalue(),
+        )
+
+    def test_parent_directory_discovery_prints_notice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            child = root / "child"
+            child.mkdir()
+            (root / "TASTE.md").write_text(
+                '# TASTE.md\n\n## Forbidden Moves\n\n### general\n- "seamless"\n',
+                encoding="utf-8",
+            )
+            with _working_directory(child):
+                with redirect_stdout(StringIO()) as stdout, redirect_stderr(StringIO()) as stderr:
+                    status = main(
+                        [
+                            "run",
+                            "--prompt",
+                            "Write a note",
+                            "--candidate",
+                            "Seamlessly done.",
+                            "--candidate",
+                            "Done.",
+                            "--no-record",
+                            "--json",
+                        ]
+                    )
+
+            self.assertEqual(status, 0)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["selected_candidate"]["index"], 1)
+            notice = stderr.getvalue()
+            self.assertIn("discovered outside the working directory", notice)
+            self.assertIn("TASTE.md", notice)
+            self.assertIn("--taste-file", notice)
+
+    def test_explicit_taste_file_does_not_print_discovery_notice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            taste = root / "TASTE.md"
+            taste.write_text(TASTE_MD, encoding="utf-8")
+            with redirect_stdout(StringIO()), redirect_stderr(StringIO()) as stderr:
+                status = main(
+                    [
+                        "run",
+                        "--taste-file",
+                        str(taste),
+                        "--domain",
+                        "design",
+                        "--prompt",
+                        "Design a product page",
+                        "--no-record",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(status, 0)
+            self.assertEqual(stderr.getvalue(), "")
+
+
+def _all_subparsers(parser):
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            for name, subparser in action.choices.items():
+                yield name, subparser
+                yield from _all_subparsers(subparser)
+
+
+@contextmanager
+def _working_directory(path: Path):
+    previous = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
 
 
 if __name__ == "__main__":
