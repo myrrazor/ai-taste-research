@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from nanotaste.schema import TasteProfile, TasteRules
 
 WORD_RE = re.compile(r"[a-z0-9][a-z0-9'-]*", re.IGNORECASE)
 QUOTED_RE = re.compile(r'"([^"]+)"|`([^`]+)`|' + r"'([^']+)'")
+MIN_ELIGIBLE_WORD_LENGTH = 4
+MAX_POINTS_PER_RULE = 2
+MAX_POSITIVE_POINTS = 6
+# A forbidden word also matches these simple inflections of itself ("seamless" catches
+# "seamlessly"). Words shorter than MIN_INFLECTION_STEM match literally.
+INFLECTION_SUFFIXES = ("", "s", "es", "ed", "ing", "ly", "ness")
+MIN_INFLECTION_STEM = 4
 STOP_WORDS = {
     "about",
     "again",
@@ -52,6 +60,7 @@ class SelectionResult:
     selected: ScoredCandidate
     rejected: tuple[ScoredCandidate, ...]
     all_scores: tuple[ScoredCandidate, ...]
+    taste_sources: tuple[Path, ...] = ()
 
     def to_record(self, prompt: str) -> dict[str, object]:
         """Return a JSON-serializable output record."""
@@ -84,6 +93,7 @@ def compare_candidates(
         selected=selected,
         rejected=rejected,
         all_scores=scored,
+        taste_sources=tuple(profile.source_paths),
     )
 
 
@@ -102,16 +112,29 @@ def score_candidate(
                 reasons.append(f"-3 forbidden move: {phrase}")
                 break
 
+    candidate_words = _eligible_words(text)
+    matched_words: set[str] = set()
     positive_score = 0
     for rule in rules.positive_rules():
         if _is_negative_rule(rule):
             continue
-        matches = _content_matches(rule, text)
+        matches = _content_matches(rule, candidate_words)
         if matches:
-            points = min(2, len(matches))
+            points = min(MAX_POINTS_PER_RULE, len(matches))
             positive_score += points
+            matched_words.update(matches)
             reasons.append(f"+{points} matches taste: {', '.join(matches[:3])}")
-    score += min(positive_score, 6)
+    positive_score = min(positive_score, MAX_POSITIVE_POINTS)
+    # Echo guard: a draft cannot earn more taste credit than it has eligible words of
+    # its own, so a candidate assembled from rule vocabulary scores nothing for it.
+    own_words = len(candidate_words - matched_words)
+    if positive_score > own_words:
+        reasons.append(
+            f"-{positive_score - own_words} echo guard: {len(matched_words)} of "
+            f"{len(candidate_words)} eligible words are copied from taste rules"
+        )
+        positive_score = own_words
+    score += positive_score
 
     if _has_specific_detail(candidate):
         score += 1
@@ -141,16 +164,18 @@ def _rule_phrases(rule: str) -> list[str]:
     return [cleaned]
 
 
-def _content_matches(rule: str, candidate_text: str) -> list[str]:
-    candidate_words = set(WORD_RE.findall(candidate_text.lower()))
-    rule = _positive_rule_text(rule)
-    words = []
-    for word in WORD_RE.findall(rule.lower()):
-        if len(word) < 4 or word in STOP_WORDS:
-            continue
-        if word in candidate_words:
-            words.append(word)
-    return sorted(set(words))
+def _eligible_words(text: str) -> set[str]:
+    """Words that can carry positive taste credit: 4+ characters, not a stop word."""
+    return {
+        word
+        for word in WORD_RE.findall(text.lower())
+        if len(word) >= MIN_ELIGIBLE_WORD_LENGTH and word not in STOP_WORDS
+    }
+
+
+def _content_matches(rule: str, candidate_words: set[str]) -> list[str]:
+    rule_words = _eligible_words(_positive_rule_text(rule))
+    return sorted(rule_words & candidate_words)
 
 
 def _is_negative_rule(rule: str) -> bool:
@@ -203,7 +228,20 @@ def _contains_forbidden_phrase(candidate_text: str, phrase: str) -> bool:
 
 
 def _phrase_pattern(phrase: str) -> re.Pattern[str]:
-    escaped = re.escape(phrase)
-    if re.fullmatch(r"[a-z0-9'-]+", phrase, re.IGNORECASE):
-        return re.compile(rf"\b{escaped}\b", re.IGNORECASE)
-    return re.compile(escaped, re.IGNORECASE)
+    words = phrase.split()
+    if words and all(re.fullmatch(r"[a-z0-9'-]+", word, re.IGNORECASE) for word in words):
+        *head, last = words
+        parts = [re.escape(word) for word in head] + [_inflected_word(last)]
+        return re.compile(r"\b" + r"\s+".join(parts) + r"\b", re.IGNORECASE)
+    return re.compile(re.escape(phrase), re.IGNORECASE)
+
+
+def _inflected_word(word: str) -> str:
+    """Regex alternation for a word and its simple suffix inflections."""
+    if len(word) < MIN_INFLECTION_STEM:
+        return re.escape(word)
+    forms = {word + suffix for suffix in INFLECTION_SUFFIXES}
+    if word.endswith("e"):
+        forms.update((word + "d", word[:-1] + "ing"))
+    longest_first = sorted(forms, key=len, reverse=True)
+    return "(?:" + "|".join(re.escape(form) for form in longest_first) + ")"
