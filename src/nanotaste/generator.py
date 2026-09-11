@@ -5,9 +5,29 @@ from __future__ import annotations
 from nanotaste.domains import normalize_domain
 from nanotaste.schema import TasteRules
 
+LEADING_PROMPT_VERBS = (
+    "design ",
+    "write ",
+    "build ",
+    "create ",
+    "implement ",
+    "make ",
+    "draft ",
+    "define ",
+    "describe ",
+    "choose ",
+    "explain ",
+)
+
 
 def generate_candidates(prompt: str, rules: TasteRules, count: int = 3) -> list[str]:
-    """Generate simple candidate drafts when no external model is wired in yet."""
+    """Generate simple candidate drafts when no external model is wired in yet.
+
+    The first draft is deliberately generic filler; the others are more concrete. The
+    critic only rejects the filler when the loaded taste rules forbid its phrases for
+    the run's domain, so this generator exercises the workflow rather than proving
+    anything about quality.
+    """
     if count < 2:
         raise ValueError("NanoTaste needs at least two candidates")
     domain = normalize_domain(rules.domain)
@@ -27,7 +47,7 @@ def _subject_from_prompt(prompt: str) -> str:
     text = " ".join(prompt.strip().split())
     if not text:
         return "the idea"
-    for verb in ("design ", "write ", "build ", "create ", "implement ", "make ", "draft "):
+    for verb in LEADING_PROMPT_VERBS:
         if text.lower().startswith(verb):
             text = text[len(verb) :]
             break
