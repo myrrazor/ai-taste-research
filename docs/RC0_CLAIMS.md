@@ -12,6 +12,9 @@ calibration records.
 - The built-in generator is synthetic and model-free.
 - The starter prompt set exercises the calibration workflow.
 - Taste updates are proposals and are not applied automatically.
+- Local setup can discover coding-agent install paths and ingest opted-in
+  history as redacted lexical excerpts.
+- Learned rules are word-overlap proposals, not a trained preference model.
 - The security boundary is the local-file threat model in `docs/THREAT_MODEL.md`.
 
 ## Claims We Do Not Make

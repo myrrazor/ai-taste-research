@@ -15,3 +15,4 @@ coverage/
 *.log
 .nanotaste/
 *.py[cod]
+*.egg-info/
