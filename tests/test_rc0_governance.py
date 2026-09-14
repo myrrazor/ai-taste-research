@@ -26,7 +26,13 @@ class GovernanceTests(unittest.TestCase):
         return result.stdout.decode().strip()
 
     def test_frozen_codeowners_file_matches_repository(self) -> None:
-        data = (Path(__file__).parents[1] / ".github" / "CODEOWNERS").read_bytes()
+        root = Path(__file__).parents[1]
+        data = subprocess.run(
+            ["git", "show", "HEAD:.github/CODEOWNERS"],
+            cwd=root,
+            check=True,
+            stdout=subprocess.PIPE,
+        ).stdout
         validate_codeowners_bytes(data)
         self.assertEqual(data, CODEOWNERS_BYTES)
 
