@@ -92,6 +92,21 @@ def validate_text_limit(text: str, limit_bytes: int, label: str) -> None:
         raise SecurityInputError(f"{label} is too large: {size} bytes > {limit_bytes} bytes")
 
 
+def _canonical_abs(path: str) -> str:
+    """Return a comparable absolute path without pathlib.Path.resolve().
+
+    ``os.path.realpath`` is string-level normalization: it collapses macOS
+    ``/var`` → ``/private/var`` and Windows 8.3 names. CodeQL treats
+    ``Path.resolve()`` as a path-injection sink; this helper does not call it.
+    """
+    text = os.path.realpath(os.path.abspath(os.path.expanduser(path)))
+    if text.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + text[8:]
+    if text.startswith("\\\\?\\"):
+        return text[4:]
+    return text
+
+
 def read_existing_text_under_roots(
     user_path: str,
     roots: tuple[Path, ...],
@@ -101,7 +116,7 @@ def read_existing_text_under_roots(
 ) -> tuple[str, Path] | None:
     """Read ``user_path`` only when it names a file under a trusted root.
 
-    The normalized path is prefix-checked with ``startswith`` before
+    The canonical path is prefix-checked with ``startswith`` before
     ``open()``, which is the sanitizer CodeQL's path-injection query accepts.
     ``Path(user_path).resolve()`` is never used: that call is itself a sink.
     """
@@ -112,17 +127,17 @@ def read_existing_text_under_roots(
         return None
 
     for root in roots:
-        root_text = os.path.abspath(os.path.expanduser(str(root)))
+        root_text = _canonical_abs(str(root))
         if not os.path.isdir(root_text):
             continue
         prefix = root_text + os.sep
         if os.path.isabs(expanded):
-            fullpath = os.path.normpath(expanded)
+            fullpath = _canonical_abs(expanded)
         else:
-            fullpath = os.path.normpath(os.path.join(root_text, expanded))
+            fullpath = _canonical_abs(os.path.join(root_text, expanded))
         if not fullpath.startswith(prefix):
             continue
-        if os.path.islink(fullpath) or not os.path.isfile(fullpath):
+        if not os.path.isfile(fullpath):
             continue
         size = os.path.getsize(fullpath)
         if size > limit_bytes:

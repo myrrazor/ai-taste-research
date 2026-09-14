@@ -88,6 +88,32 @@ class SecurityTests(unittest.TestCase):
                 )
             )
 
+            via_resolved_root = read_existing_text_under_roots(
+                str(inside),
+                (workspace.resolve(),),
+                limit_bytes=MAX_LIKE_FILE_BYTES,
+                label="preference example",
+            )
+            self.assertIsNotNone(via_resolved_root)
+            assert via_resolved_root is not None
+            self.assertEqual(via_resolved_root[0], "Keep the decision visible.")
+
+            alias = root / "alias-project"
+            try:
+                alias.symlink_to(workspace, target_is_directory=True)
+            except (NotImplementedError, OSError):
+                alias = None
+            if alias is not None:
+                aliased = read_existing_text_under_roots(
+                    str(alias / "note.md"),
+                    (workspace.resolve(),),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+                self.assertIsNotNone(aliased)
+                assert aliased is not None
+                self.assertEqual(aliased[0], "Keep the decision visible.")
+
             text, stem = resolve_example_text(str(inside), roots=(workspace,))
             self.assertEqual(text, "Keep the decision visible.")
             self.assertEqual(stem, "note")

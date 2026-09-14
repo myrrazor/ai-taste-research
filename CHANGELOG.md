@@ -30,6 +30,8 @@
 - `like` / `unlike` file paths are opened only after a trusted-root prefix
   check. CodeQL treats `Path(user).resolve()` as a path-injection sink, so
   preference examples no longer resolve the operator path before containment.
+  Containment uses `os.path.realpath` so macOS `/var` aliases and Windows
+  8.3 names still match the resolved workspace.
 
 ## 0.1.0-rc0 - 2026-07-16
 
