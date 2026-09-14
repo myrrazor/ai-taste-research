@@ -42,6 +42,12 @@ approved root for that discovery path. For example, an auto-discovered
 `taste/code.md` may be a symlink to another file under the same project root,
 but not to `~/.ssh/config` or another external path.
 
+Opted-in coding-agent discovery reads only source roots the operator enables
+during `nanotaste setup`. Session ingest copies redacted excerpts into
+`.nanotaste/sessions/` and never writes raw history into `TASTE.md`. Home-directory
+roots are operator-selected; NanoTaste does not follow session-file symlinks
+and skips common cache, plugin, and `node_modules` trees.
+
 Explicit input overrides are treated as deliberate operator choices:
 
 - `--taste-file` may point outside the project, but it must resolve to a

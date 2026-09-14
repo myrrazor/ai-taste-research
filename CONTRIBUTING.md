@@ -32,6 +32,7 @@ python -m venv .venv-smoke
 . .venv-smoke/bin/activate
 python -m pip install dist/*.whl
 nanotaste --help
+nanotaste setup --yes --workspace /tmp/nanotaste-smoke --home /tmp/nanotaste-smoke-home
 ```
 
 ## Branches

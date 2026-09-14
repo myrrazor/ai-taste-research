@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- First-run `nanotaste setup` that discovers local coding agents and can
+  integrate every present source immediately.
+- `nanotaste harvest` to pull opted-in session history, extract lexical taste
+  signals, and write a report.
+- Manual steering with `like`, `unlike`, `pick`, and `prefer`.
+- Manual or scheduled reports via `nanotaste report` and `nanotaste schedule`.
+- Example likes, unlikes, session excerpts, and a sample report in `examples/`.
+
 ## 0.1.0-rc0 - 2026-07-16
 
 RC0 prepares `0.1.0` as a pre-alpha research scaffold. It does not make a validated
