@@ -48,11 +48,12 @@ during `nanotaste setup`. Session ingest copies redacted excerpts into
 roots are operator-selected; NanoTaste does not follow session-file symlinks
 and skips common cache, plugin, and `node_modules` trees.
 
-Operator-initiated seed fetches (`nanotaste seed --url`) retrieve only http(s)
-URLs, cap the response size, and store redacted excerpts. They are not a
-general-purpose crawler. The local studio (`nanotaste serve`) defaults to
-`127.0.0.1` and writes only into the selected workspace. It is not a multi-user
-web service.
+Operator-initiated seed fetches (`nanotaste seed --url`) retrieve only rebuilt
+http(s) URLs, reject credentials, refuse redirects, cap the response size, and
+store redacted excerpts. They are not a general-purpose crawler. The local
+studio (`nanotaste serve`) binds only to loopback and writes seed uploads under
+a validated basename in the selected workspace. It is not a multi-user web
+service.
 
 Explicit input overrides are treated as deliberate operator choices:
 
