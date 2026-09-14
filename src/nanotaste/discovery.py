@@ -23,17 +23,8 @@ def discover_taste_paths(
         )
         discovered = [base]
         domain_root = (base.parent / "taste").expanduser()
-        domain_file = domain_root / f"{normalize_domain(domain)}.md"
-        if domain_file.exists() or domain_file.is_symlink():
-            discovered.append(
-                safe_resolve_file(
-                    domain_file,
-                    root=domain_root,
-                    limit_bytes=MAX_TASTE_FILE_BYTES,
-                    label="domain taste file",
-                )
-            )
-        return discovered
+        discovered.extend(_domain_files(domain_root, normalize_domain(domain)))
+        return _dedupe(discovered)
 
     roots = _candidate_roots(cwd)
     explicit_taste_dir = _resolve_taste_dir(cwd, taste_dir) if taste_dir else None
@@ -50,16 +41,8 @@ def discover_taste_paths(
                 )
             )
         folder = explicit_taste_dir or root / "taste"
-        domain_file = folder / f"{normalize_domain(domain)}.md"
-        if domain_file.exists() or domain_file.is_symlink():
-            paths.append(
-                safe_resolve_file(
-                    domain_file,
-                    root=folder,
-                    limit_bytes=MAX_TASTE_FILE_BYTES,
-                    label="domain taste file",
-                )
-            )
+        if folder.exists():
+            paths.extend(_domain_files(folder, normalize_domain(domain)))
         if paths:
             return _dedupe(paths)
     return []
@@ -81,6 +64,21 @@ def _dedupe(paths: list[Path]) -> list[Path]:
             seen.add(resolved)
             result.append(resolved)
     return result
+
+
+def _domain_files(folder: Path, domain: str) -> list[Path]:
+    files: list[Path] = []
+    for candidate in (folder / f"{domain}.md", folder / "learned" / f"{domain}.md"):
+        if candidate.exists() or candidate.is_symlink():
+            files.append(
+                safe_resolve_file(
+                    candidate,
+                    root=folder,
+                    limit_bytes=MAX_TASTE_FILE_BYTES,
+                    label="domain taste file",
+                )
+            )
+    return files
 
 
 def _resolve_taste_dir(cwd: Path, taste_dir: Path) -> Path:

@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import IO
 
+from nanotaste.catalog import install_hierarchy
 from nanotaste.ingest import ingest_workspace
 from nanotaste.learn import learn_workspace
 from nanotaste.report import generate_report, write_schedule
-from nanotaste.security import atomic_write_text
 from nanotaste.sources import AgentSource, discover_sources, present_sources
 from nanotaste.workspace import (
     DEFAULT_DOMAINS,
@@ -19,7 +19,6 @@ from nanotaste.workspace import (
     config_exists,
     ensure_workspace,
     now_iso,
-    starter_taste_markdown,
     write_config,
 )
 
@@ -35,6 +34,7 @@ class SetupResult:
     taste_path: Path
     harvested: bool
     report_path: Path | None
+    seeded: bool = False
 
 
 def run_setup(
@@ -45,6 +45,9 @@ def run_setup(
     frequency: str = "weekly",
     domains: tuple[str, ...] | None = None,
     sources: tuple[str, ...] | None = None,
+    seed_url: str | None = None,
+    seed_file: str | None = None,
+    seed_text: str | None = None,
     stdin: IO[str] | None = None,
     stdout: IO[str] | None = None,
 ) -> SetupResult:
@@ -59,10 +62,14 @@ def run_setup(
     if not yes:
         chosen_domains = _choose_domains(chosen_domains, stdin, stdout)
         frequency = _choose_frequency(frequency, stdin, stdout)
-        harvest = _ask(f"Run the first harvest now ({', '.join(enabled) or 'no sources'})?", True, stdin, stdout)
+        harvest = _ask(
+            f"Pull coding sessions now and start {frequency} taste training?",
+            True,
+            stdin,
+            stdout,
+        )
+    install_hierarchy(workspace)
     taste_path = workspace.root / "TASTE.md"
-    if not taste_path.exists():
-        atomic_write_text(taste_path, starter_taste_markdown(), label="taste file")
     config = TasteConfig(
         schema="nanotaste/config/1.0",
         created_at=now_iso(),
@@ -77,6 +84,15 @@ def run_setup(
     )
     write_config(workspace, config)
     write_schedule(workspace, frequency)
+    seeded = _apply_seed(
+        workspace,
+        seed_url=seed_url,
+        seed_file=seed_file,
+        seed_text=seed_text,
+        yes=yes,
+        stdin=stdin,
+        stdout=stdout,
+    )
     report_path = None
     did_harvest = False
     if harvest:
@@ -93,6 +109,7 @@ def run_setup(
         taste_path=taste_path,
         harvested=did_harvest,
         report_path=report_path,
+        seeded=seeded,
     )
 
 
@@ -156,9 +173,53 @@ def _choose_domains(
     return items or default
 
 
+def _apply_seed(
+    workspace: TasteWorkspace,
+    *,
+    seed_url: str | None,
+    seed_file: str | None,
+    seed_text: str | None,
+    yes: bool,
+    stdin: IO[str] | None,
+    stdout: IO[str] | None,
+) -> bool:
+    from nanotaste.seed import seed_workspace
+
+    if seed_url or seed_file or seed_text:
+        if seed_url:
+            seed_workspace(workspace, url=seed_url, domain="personal", label="setup-url")
+        if seed_file:
+            seed_workspace(workspace, path=Path(seed_file), label="setup-file")
+        if seed_text:
+            seed_workspace(workspace, text=seed_text, domain="personal", label="setup-text")
+        _write(stdout, "Seed recorded. Harvest will fold it into learned overlays.")
+        return True
+    if yes:
+        return False
+    hint = _prompt(
+        "Seed taste from a personal site, file, or note? "
+        "Paste a URL, path, short text, or press Enter to skip",
+        "",
+        stdin,
+        stdout,
+    ).strip()
+    if not hint:
+        return False
+    if hint.startswith("http://") or hint.startswith("https://"):
+        seed_workspace(workspace, url=hint, domain="personal", label="setup-url")
+    else:
+        candidate = Path(hint).expanduser()
+        if candidate.exists():
+            seed_workspace(workspace, path=candidate, label="setup-file")
+        else:
+            seed_workspace(workspace, text=hint, domain="personal", label="setup-text")
+    _write(stdout, "Seed recorded. Harvest will fold it into learned overlays.")
+    return True
+
+
 def _choose_frequency(default: str, stdin: IO[str] | None, stdout: IO[str] | None) -> str:
     answer = _prompt(
-        "Report frequency (manual, daily, weekly, monthly)",
+        "How often should NanoTaste pull coding sessions and refresh taste? (manual, daily, weekly, monthly)",
         default,
         stdin,
         stdout,

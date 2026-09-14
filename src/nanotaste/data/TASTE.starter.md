@@ -1,38 +1,38 @@
 # TASTE.md
 ---
-schema: taste/1.0
-domains: [general, aesthetic, writing, product, code]
+schema: taste/1.1
+kind: index
+domains: [general, writing, code, product, aesthetic, personal, brand, communication, research]
+children: [writing, code, aesthetic, product, personal, brand, communication, research]
 ---
+
+## Catalog
+
+- [Writing](taste/writing.md) — Voice, docs, and launch notes.
+- [Code](taste/code.md) — Shape, tests, and reviewability.
+- [Aesthetic](taste/aesthetic.md) — Visual hierarchy and product imagery.
+- [Product](taste/product.md) — Narrow loops and visible decisions.
+- [Personal](taste/personal.md) — Identity, biography, and what you care about.
+- [Brand](taste/brand.md) — Naming, tone, and how the work presents itself.
+- [Communication](taste/communication.md) — How you talk to agents and collaborators.
+- [Research](taste/research.md) — Evidence, claims, and experiment hygiene.
+
+Learned overlays from scheduled harvests live in `taste/learned/` and do not overwrite these seeded files.
 
 ## Anchors
 
 ### general
 - Closer to concrete, opinionated builder notes than to generic best-practice prose.
 
-### aesthetic
-- Closer to real product imagery and restrained hierarchy than to generic SaaS decoration.
-
-### code
-- Closer to small explicit functions with tests than to clever abstractions.
-
 ## Principles
 
 ### general
 - Specificity beats polish.
 
-### aesthetic
-- Make the primary object obvious in the first viewport.
-
-### code
-- Return reasons with scores so behavior is easy to test.
-
 ## Tradeoffs
 
 ### general
 - When clarity and cleverness conflict, choose clarity.
-
-### code
-- When abstraction and debuggability conflict, choose debuggability.
 
 ## Forbidden Moves
 
@@ -40,31 +40,9 @@ domains: [general, aesthetic, writing, product, code]
 - "delve"
 - "landscape"
 
-### aesthetic
-- "gradient"
-- "floating card"
-- "decorative blob"
-
-### writing
-- "In today's fast-paced world"
-- "seamlessly"
-- "empower"
-
-### code
-- "This function is responsible for"
-- "console.log"
-
-## Calibration Examples
-
-### writing
-> Good: "Run the harness on three drafts. If it picks your edit, the taste file is doing work."
-> Why: concrete action, specific signal, no filler.
-
-> Bad: "This solution empowers teams to seamlessly navigate the AI landscape."
-> Why: generic verbs, no visible user, forbidden phrases.
-
 ## Update Policy
 
 ### general
-- Proposed updates must be reviewed before changing `TASTE.md`.
-- Learned rules from sessions and likes stay in pending proposals until applied.
+- Proposed updates must be reviewed before changing a seeded taste file.
+- Scheduled harvest writes category overlays under `taste/learned/`.
+- Seed a personal site, files, or images with `nanotaste seed` or the local studio.
