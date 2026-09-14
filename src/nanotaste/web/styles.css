@@ -11,7 +11,7 @@ html, body { margin: 0; min-height: 100%; }
 body {
   display: grid;
   grid-template-columns: 240px 1fr;
-  font: 16px/1.5 Iowan Old Style, Palatino, Georgia, serif;
+  font: 16px/1.5 "Liberation Serif", "DejaVu Serif", Palatino, Georgia, serif;
   background: var(--paper);
   color: var(--ink);
 }
@@ -42,7 +42,8 @@ main { padding: 36px 48px 64px; max-width: 920px; }
   padding: 16px 18px;
   margin: 12px 0;
 }
-.row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 16px 0; }
+.row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin: 16px 0; }
+.row .primary { min-height: 42px; }
 label { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
 input, textarea, select { padding: 8px; border: 1px solid var(--line); background: #fff; }
 .log, .report {
