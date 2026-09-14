@@ -92,6 +92,52 @@ def validate_text_limit(text: str, limit_bytes: int, label: str) -> None:
         raise SecurityInputError(f"{label} is too large: {size} bytes > {limit_bytes} bytes")
 
 
+def read_existing_text_under_roots(
+    user_path: str,
+    roots: tuple[Path, ...],
+    *,
+    limit_bytes: int,
+    label: str,
+) -> tuple[str, Path] | None:
+    """Read ``user_path`` only when it names a file under a trusted root.
+
+    The normalized path is prefix-checked with ``startswith`` before
+    ``open()``, which is the sanitizer CodeQL's path-injection query accepts.
+    ``Path(user_path).resolve()`` is never used: that call is itself a sink.
+    """
+    if not user_path or "\x00" in user_path:
+        return None
+    expanded = os.path.expanduser(user_path)
+    if any(part == ".." for part in expanded.replace("\\", "/").split("/")):
+        return None
+
+    for root in roots:
+        root_text = os.path.abspath(os.path.expanduser(str(root)))
+        if not os.path.isdir(root_text):
+            continue
+        prefix = root_text + os.sep
+        if os.path.isabs(expanded):
+            fullpath = os.path.normpath(expanded)
+        else:
+            fullpath = os.path.normpath(os.path.join(root_text, expanded))
+        if not fullpath.startswith(prefix):
+            continue
+        if os.path.islink(fullpath) or not os.path.isfile(fullpath):
+            continue
+        size = os.path.getsize(fullpath)
+        if size > limit_bytes:
+            raise SecurityInputError(f"{label} is too large: {size} bytes > {limit_bytes} bytes")
+        with open(fullpath, "rb") as handle:
+            data = handle.read(limit_bytes + 1)
+        if len(data) > limit_bytes:
+            raise SecurityInputError(f"{label} is too large: {len(data)} bytes > {limit_bytes} bytes")
+        try:
+            return data.decode("utf-8"), Path(fullpath)
+        except UnicodeDecodeError as err:
+            raise SecurityInputError(f"{label} is not valid UTF-8: {user_path}") from err
+    return None
+
+
 def safe_resolve_file(
     path: Path,
     *,
