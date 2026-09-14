@@ -13,6 +13,7 @@ from nanotaste.calibration import evaluate_calibration, load_prompt_set
 from nanotaste.cli import main
 from nanotaste.discovery import discover_taste_paths
 from nanotaste.domains import normalize_domain
+from nanotaste.prefer import resolve_example_text
 from nanotaste.records import append_record
 from nanotaste.schema import TasteProfile
 from nanotaste.security import (
@@ -20,18 +21,122 @@ from nanotaste.security import (
     MAX_CANDIDATE_FILE_BYTES,
     MAX_CALIBRATION_RUN_BYTES,
     MAX_HUMAN_PICKS_BYTES,
+    MAX_LIKE_FILE_BYTES,
     MAX_PROMPT_BYTES,
     MAX_PROMPT_SET_BYTES,
     MAX_RECORD_LINE_BYTES,
     MAX_TASTE_FILE_BYTES,
     SecurityInputError,
     atomic_write_text,
+    read_existing_text_under_roots,
     safe_for_terminal,
     safe_read_text,
 )
 
 
 class SecurityTests(unittest.TestCase):
+    def test_preference_files_must_stay_under_an_approved_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workspace = root / "project"
+            other = root / "other"
+            workspace.mkdir()
+            other.mkdir()
+            inside = workspace / "note.md"
+            inside.write_text("Keep the decision visible.", encoding="utf-8")
+            outside = other / "secret.md"
+            outside.write_text("do not read me", encoding="utf-8")
+            nested = workspace / "docs"
+            nested.mkdir()
+            nested_file = nested / "inside.md"
+            nested_file.write_text("nested like", encoding="utf-8")
+
+            loaded = read_existing_text_under_roots(
+                str(inside),
+                (workspace,),
+                limit_bytes=MAX_LIKE_FILE_BYTES,
+                label="preference example",
+            )
+            self.assertIsNotNone(loaded)
+            assert loaded is not None
+            self.assertEqual(loaded[0], "Keep the decision visible.")
+
+            relative = read_existing_text_under_roots(
+                "docs/inside.md",
+                (workspace,),
+                limit_bytes=MAX_LIKE_FILE_BYTES,
+                label="preference example",
+            )
+            self.assertIsNotNone(relative)
+            assert relative is not None
+            self.assertEqual(relative[0], "nested like")
+
+            self.assertIsNone(
+                read_existing_text_under_roots(
+                    str(outside),
+                    (workspace,),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+            )
+            self.assertIsNone(
+                read_existing_text_under_roots(
+                    "../other/secret.md",
+                    (workspace,),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+            )
+
+            text, stem = resolve_example_text(str(inside), roots=(workspace,))
+            self.assertEqual(text, "Keep the decision visible.")
+            self.assertEqual(stem, "note")
+            with self.assertRaises(ValueError):
+                resolve_example_text(str(outside), roots=(workspace,))
+            literal, literal_stem = resolve_example_text(
+                "Keep concrete drafts and record the decision.",
+                roots=(workspace,),
+            )
+            self.assertEqual(literal, "Keep concrete drafts and record the decision.")
+            self.assertIsNone(literal_stem)
+
+            self.assertIsNone(
+                read_existing_text_under_roots(
+                    str(inside),
+                    (root / "missing",),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+            )
+            huge = workspace / "huge.md"
+            huge.write_text("x" * (MAX_LIKE_FILE_BYTES + 1), encoding="utf-8")
+            with self.assertRaises(SecurityInputError):
+                read_existing_text_under_roots(
+                    str(huge),
+                    (workspace,),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+            invalid = workspace / "bad.md"
+            invalid.write_bytes(b"\xff")
+            with self.assertRaises(SecurityInputError):
+                read_existing_text_under_roots(
+                    str(invalid),
+                    (workspace,),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+            outside_link = workspace / "escape.md"
+            self._symlink_or_skip(outside, outside_link)
+            self.assertIsNone(
+                read_existing_text_under_roots(
+                    str(outside_link),
+                    (workspace,),
+                    limit_bytes=MAX_LIKE_FILE_BYTES,
+                    label="preference example",
+                )
+            )
+
     def test_domain_aliases_still_normalize(self):
         self.assertEqual(normalize_domain("design"), "aesthetic")
         self.assertEqual(normalize_domain("python"), "code")

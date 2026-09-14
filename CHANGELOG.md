@@ -27,6 +27,9 @@
 - Local studio binds only to loopback, seed filenames stay in the seed
   directory, and seed URL fetches rebuild a validated http(s) URL and refuse
   redirects.
+- `like` / `unlike` file paths are opened only after a trusted-root prefix
+  check. CodeQL treats `Path(user).resolve()` as a path-injection sink, so
+  preference examples no longer resolve the operator path before containment.
 
 ## 0.1.0-rc0 - 2026-07-16
 
