@@ -20,6 +20,14 @@
   harvest. `schedule --install` can append the crontab snippet.
 - Static marketing site in `website/`, separate from the local studio.
 
+### Fixed
+
+- RC0 preflight timestamp comparison no longer requires IANA tzdata, so
+  Windows Python 3.14 CI can run without the `tzdata` package.
+- Local studio binds only to loopback, seed filenames stay in the seed
+  directory, and seed URL fetches rebuild a validated http(s) URL and refuse
+  redirects.
+
 ## 0.1.0-rc0 - 2026-07-16
 
 RC0 prepares `0.1.0` as a pre-alpha research scaffold. It does not make a validated
