@@ -65,6 +65,9 @@ Explicit input overrides are treated as deliberate operator choices:
   inside that directory after symlink resolution.
 - Candidate files, prompt-set files, calibration run files, and pick files must
   resolve to regular files.
+- `like` / `unlike` file arguments must sit under the workspace root or the
+  current working directory after normalization. Literal text is still accepted.
+  Paths with `..` or a target outside those roots are rejected.
 
 Output targets must not be symlinks. NanoTaste writes to a temporary file in the
 same directory, flushes it, and replaces the target. Output directories are

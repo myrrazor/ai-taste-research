@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
 from nanotaste.records import append_record
-from nanotaste.security import MAX_LIKE_FILE_BYTES, atomic_write_text, safe_read_text, validate_text_limit
+from nanotaste.security import (
+    MAX_LIKE_FILE_BYTES,
+    atomic_write_text,
+    read_existing_text_under_roots,
+    validate_text_limit,
+)
 from nanotaste.workspace import TasteWorkspace, ensure_workspace, now_iso
 
 
@@ -60,31 +64,19 @@ def add_example(
 
 def resolve_example_text(item: str, *, roots: tuple[Path, ...] | None = None) -> tuple[str, str | None]:
     """Read a file under an approved root, or accept literal text."""
-    allowed = tuple(root.expanduser().resolve() for root in (roots or (Path.cwd(),)))
-    located = _existing_file_under_roots(item, allowed)
-    if located is not None:
-        path, root = located
-        return (
-            safe_read_text(path, root=root, limit_bytes=MAX_LIKE_FILE_BYTES, label="preference example"),
-            path.stem,
-        )
+    allowed = tuple(roots or (Path.cwd(),))
+    loaded = read_existing_text_under_roots(
+        item,
+        allowed,
+        limit_bytes=MAX_LIKE_FILE_BYTES,
+        label="preference example",
+    )
+    if loaded is not None:
+        text, path = loaded
+        return text, path.stem
     if any(sep in item for sep in ("/", "\\")) or item.endswith((".md", ".txt", ".py", ".json")):
         raise ValueError(f"preference file not found: {item}")
     return item, None
-
-
-def _existing_file_under_roots(item: str, roots: tuple[Path, ...]) -> tuple[Path, Path] | None:
-    try:
-        resolved = Path(item).expanduser().resolve(strict=True)
-    except OSError:
-        return None
-    text = str(resolved)
-    for root in roots:
-        prefix = str(root) + os.sep
-        if text == str(root) or text.startswith(prefix):
-            if resolved.is_file():
-                return resolved, root
-    return None
 
 
 def record_pick(
