@@ -48,6 +48,12 @@ during `nanotaste setup`. Session ingest copies redacted excerpts into
 roots are operator-selected; NanoTaste does not follow session-file symlinks
 and skips common cache, plugin, and `node_modules` trees.
 
+Operator-initiated seed fetches (`nanotaste seed --url`) retrieve only http(s)
+URLs, cap the response size, and store redacted excerpts. They are not a
+general-purpose crawler. The local studio (`nanotaste serve`) defaults to
+`127.0.0.1` and writes only into the selected workspace. It is not a multi-user
+web service.
+
 Explicit input overrides are treated as deliberate operator choices:
 
 - `--taste-file` may point outside the project, but it must resolve to a
@@ -118,6 +124,9 @@ Limits are byte limits after UTF-8 encoding unless noted otherwise.
 | CLI generated candidate count | 26 |
 | JSONL record line | 4 MiB |
 | Proposed update input text | 512 KiB |
+| Seed file or pasted note | 512 KiB |
+| Seed URL response | 512 KiB |
+| Stored seed records | 200 |
 
 The first version favors small research packets over accepting arbitrary bulk
 data. Larger studies should introduce explicit streaming/import contracts in a

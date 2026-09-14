@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from nanotaste.catalog import category_ids, write_learned_overlay
 from nanotaste.ingest import SessionExcerpt, load_excerpts
 from nanotaste.schema import TasteProfile
 from nanotaste.scoring import STOP_WORDS, WORD_RE
@@ -92,6 +93,7 @@ class LearnResult:
     signals_path: Path
     taste_created: Path | None
     taste_applied: Path | None
+    overlay_paths: tuple[Path, ...] = ()
 
 
 def learn_workspace(
@@ -101,7 +103,9 @@ def learn_workspace(
     create_if_missing: bool = True,
 ) -> LearnResult:
     """Derive pending taste rules from local evidence."""
-    likes = _read_examples(workspace.likes_dir)
+    from nanotaste.seed import seed_texts
+
+    likes = _read_examples(workspace.likes_dir) + seed_texts(workspace)
     unlikes = _read_examples(workspace.unlikes_dir)
     excerpts = load_excerpts(workspace)
     signals = extract_signals(likes, unlikes, excerpts)
@@ -132,6 +136,7 @@ def learn_workspace(
             label="taste file",
         )
         applied = taste_path
+    overlay_paths = _write_overlays(workspace, signals)
     replace_config(workspace, last_learn_at=signals.generated_at)
     return LearnResult(
         signals=signals,
@@ -139,7 +144,23 @@ def learn_workspace(
         signals_path=signals_path,
         taste_created=created,
         taste_applied=applied,
+        overlay_paths=overlay_paths,
     )
+
+
+def _write_overlays(workspace: TasteWorkspace, signals: LearnedSignals) -> tuple[Path, ...]:
+    paths: list[Path] = []
+    for domain in ("general",) + category_ids():
+        overlay = workspace.learned_overlays_dir / f"{domain}.md"
+        existing = (
+            overlay.read_text(encoding="utf-8")
+            if overlay.exists()
+            else f"# Learned {domain} overlay\n---\nschema: taste/1.1\nkind: overlay\ndomain: {domain}\n---\n"
+        )
+        updated = merge_taste_markdown(existing, signals)
+        if updated != existing:
+            paths.append(write_learned_overlay(workspace, domain, updated))
+    return tuple(paths)
 
 
 def extract_signals(
@@ -209,7 +230,7 @@ def merge_taste_markdown(existing: str, signals: LearnedSignals) -> str:
     known = {item.lower() for item in current_rules.positive_rules() + current_rules.forbidden_moves}
     new_principles = [item for item in signals.principles if item.lower() not in known]
     new_forbidden = [item for item in signals.forbidden if item.lower() not in known]
-    if not new_principles and not new_forbidden and not signals.good_examples and not signals.bad_examples:
+    if not new_principles and not new_forbidden:
         return existing
     chunks = [existing.rstrip()]
     if new_principles:

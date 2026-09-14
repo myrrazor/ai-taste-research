@@ -35,13 +35,19 @@ Reports: weekly
 First report: .nanotaste/reports/latest.md
 
 Next:
-  nanotaste like PATH          # drop in something you prefer
-  nanotaste unlike PATH        # drop in something to avoid
-  nanotaste pick --candidate A --candidate B
-  nanotaste harvest            # pull sessions and refresh the report
-  nanotaste report --if-due    # honor the report schedule
+  nanotaste serve               # local studio for hierarchy, seeds, and harvest
+  nanotaste seed --url URL      # seed from a personal site or note
+  nanotaste harvest             # pull sessions and refresh overlays
+  nanotaste schedule --every weekly --install
 ```
 
-Without `--yes`, setup asks whether to integrate every present source, which
-domains to keep, how often to write reports, and whether to run the first
-harvest immediately.
+Without `--yes`, setup asks:
+
+1. whether to integrate every present coding agent;
+2. which domains to keep in the index;
+3. how often to pull sessions and refresh taste (`manual`, `daily`, `weekly`, `monthly`);
+4. whether to run the first harvest immediately;
+5. whether to seed a personal site, file, or note now.
+
+`--yes` accepts the defaults. Add `--seed-url`, `--seed-file`, or `--seed-text`
+when you want the first overlay without the prompt.

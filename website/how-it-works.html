@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How NanoTaste creates taste</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <p class="mark">NanoTaste</p>
+    <nav>
+      <a href="index.html">Product</a>
+      <a href="how-it-works.html" aria-current="page">How it works</a>
+      <a href="../README.md">Docs</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="kicker">The whole loop, in order</p>
+      <h1>From install prompt to a living taste hierarchy</h1>
+      <p class="lede">Four steps. No dashboard account. The video below is the same path the README uses.</p>
+    </section>
+    <section>
+      <h2>Video</h2>
+      <p>Play this if you want the motion version. The stills underneath cover the same ground.</p>
+      <video controls playsinline poster="assets/studio-overview.png">
+        <source src="assets/taste-setup-walkthrough.mp4" type="video/mp4">
+        Your browser cannot play the walkthrough video. Use the screenshots below.
+      </video>
+    </section>
+    <section>
+      <h2>1. Install and answer the setup prompts</h2>
+      <p><code>nanotaste setup</code> discovers local coding agents, asks which ones to integrate, asks how often to pull sessions, and can take a personal URL, file, or note as the first seed.</p>
+      <figure>
+        <img src="assets/cli-setup.png" alt="First-run setup discovering agents and asking for a harvest schedule">
+        <figcaption>First-run setup: agents, schedule, optional seed, first harvest.</figcaption>
+      </figure>
+    </section>
+    <section>
+      <h2>2. The main file points at category files</h2>
+      <p><code>TASTE.md</code> is an index. It links to seeded files under <code>taste/</code>. Scheduled harvest writes overlays in <code>taste/learned/</code> instead of silently rewriting the seeds.</p>
+      <pre><code>TASTE.md
+taste/writing.md
+taste/code.md
+taste/aesthetic.md
+taste/product.md
+taste/personal.md
+taste/brand.md
+taste/communication.md
+taste/research.md
+taste/learned/*.md</code></pre>
+    </section>
+    <section>
+      <h2>3. Seed whatever actually describes you</h2>
+      <p>A personal site, a bio, screenshots, or a folder of notes. The CLI and the local studio both accept URLs, files, images, and pasted text. Images use the caption and filename; there is no vision model.</p>
+      <figure>
+        <img src="assets/studio-seeds.png" alt="Local studio seed form with URL, note, and file inputs">
+        <figcaption>Local studio seed box. Separate from this marketing site.</figcaption>
+      </figure>
+    </section>
+    <section>
+      <h2>4. Harvest on a schedule</h2>
+      <p><code>nanotaste harvest</code> pulls opted-in sessions, extracts lexical signals, refreshes overlays, and writes a report. <code>nanotaste schedule --every weekly --install</code> appends a crontab snippet when <code>crontab</code> is available.</p>
+      <figure>
+        <img src="assets/studio-hierarchy.png" alt="Taste hierarchy with category tags and learned overlays">
+        <figcaption>Hierarchy, tags, and rule counts in the local studio.</figcaption>
+      </figure>
+    </section>
+    <section>
+      <h2>Open the studio, not this site, to edit taste</h2>
+      <pre><code>nanotaste serve
+# http://127.0.0.1:7468</code></pre>
+    </section>
+  </main>
+  <footer>
+    <p>NanoTaste has not demonstrated human preference alignment. Repository: <a href="https://github.com/myrrazor/ai-taste-research">github.com/myrrazor/ai-taste-research</a></p>
+  </footer>
+</body>
+</html>

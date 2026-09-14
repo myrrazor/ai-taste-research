@@ -14,7 +14,17 @@ from nanotaste.security import atomic_write_text, safe_json_loads, safe_read_tex
 CONFIG_SCHEMA = "nanotaste/config/1.0"
 CONFIG_NAME = "config.json"
 FREQUENCIES = ("manual", "daily", "weekly", "monthly")
-DEFAULT_DOMAINS = ("general", "writing", "code", "product", "aesthetic")
+DEFAULT_DOMAINS = (
+    "general",
+    "writing",
+    "code",
+    "product",
+    "aesthetic",
+    "personal",
+    "brand",
+    "communication",
+    "research",
+)
 
 
 @dataclass(frozen=True)
@@ -88,6 +98,22 @@ class TasteWorkspace:
     def runs_path(self) -> Path:
         return self.nanotaste_dir / "runs.jsonl"
 
+    @property
+    def seeds_dir(self) -> Path:
+        return self.nanotaste_dir / "seeds"
+
+    @property
+    def seed_files_dir(self) -> Path:
+        return self.seeds_dir / "files"
+
+    @property
+    def taste_dir(self) -> Path:
+        return self.root / "taste"
+
+    @property
+    def learned_overlays_dir(self) -> Path:
+        return self.taste_dir / "learned"
+
     def taste_path(self, config: TasteConfig | None = None) -> Path:
         relative = Path(config.taste_file) if config else Path("TASTE.md")
         return relative if relative.is_absolute() else self.root / relative
@@ -121,6 +147,10 @@ def ensure_workspace(workspace: TasteWorkspace) -> None:
         workspace.sessions_dir,
         workspace.learned_dir,
         workspace.reports_dir,
+        workspace.seeds_dir,
+        workspace.seed_files_dir,
+        workspace.taste_dir,
+        workspace.learned_overlays_dir,
     ):
         path.mkdir(parents=True, exist_ok=True)
 

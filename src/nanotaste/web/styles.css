@@ -1,0 +1,64 @@
+:root {
+  --ink: #221c16;
+  --paper: #f4efe6;
+  --card: #fffaf2;
+  --line: #d8cfc0;
+  --accent: #9a3412;
+  --muted: #6d6358;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  font: 16px/1.5 Iowan Old Style, Palatino, Georgia, serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+aside {
+  padding: 28px 20px;
+  border-right: 1px solid var(--line);
+  background: #efe7da;
+}
+.mark { font-weight: 700; letter-spacing: 0.02em; }
+nav { display: flex; flex-direction: column; gap: 8px; margin: 24px 0; }
+nav button, .row button, form button, select, input, textarea {
+  font: inherit;
+}
+nav button, .row button, form button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+nav button.active, .primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.aside-note, .lede, label { color: var(--muted); }
+main { padding: 36px 48px 64px; max-width: 920px; }
+.hidden { display: none; }
+.card, #catalog article, #seed-list article, #source-list article {
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+  margin: 12px 0;
+}
+.row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin: 16px 0; }
+label { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+input, textarea, select { padding: 8px; border: 1px solid var(--line); background: #fff; }
+.log, .report {
+  white-space: pre-wrap;
+  background: #1f1a16;
+  color: #f4efe6;
+  padding: 16px;
+  overflow: auto;
+}
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { border: 1px solid var(--line); padding: 2px 8px; font-size: 13px; }
+h1 { font-size: 32px; line-height: 1.15; margin-top: 0; }
+h2 { font-size: 20px; margin: 0 0 8px; }
+@media (max-width: 800px) {
+  body { grid-template-columns: 1fr; }
+  aside { border-right: 0; border-bottom: 1px solid var(--line); }
+  nav { flex-direction: row; flex-wrap: wrap; }
+  main { padding: 24px 20px 48px; }
+}

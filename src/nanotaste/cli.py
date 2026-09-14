@@ -48,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
         "prefer": _prefer,
         "report": _report,
         "schedule": _schedule,
+        "seed": _seed,
+        "catalog": _catalog,
+        "serve": _serve,
         "run": _run,
         "compare": _compare,
         "propose-update": _propose_update,
@@ -76,6 +79,9 @@ def _build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--every", choices=FREQUENCIES, default="weekly")
     setup.add_argument("--source", action="append", default=[])
     setup.add_argument("--domain", action="append", default=[])
+    setup.add_argument("--seed-url", help="seed a personal site during first-run setup")
+    setup.add_argument("--seed-file", help="seed a local file or image during first-run setup")
+    setup.add_argument("--seed-text", help="seed a pasted note during first-run setup")
     setup.add_argument("--json", action="store_true")
 
     status = sub.add_parser("status", help="show workspace setup, sources, and report schedule")
@@ -135,10 +141,31 @@ def _build_parser() -> argparse.ArgumentParser:
     report.add_argument("--if-due", action="store_true")
     report.add_argument("--json", action="store_true")
 
-    schedule = sub.add_parser("schedule", help="set how often automated reports should be generated")
+    schedule = sub.add_parser("schedule", help="set how often automated session harvests should run")
     _add_workspace_args(schedule)
     schedule.add_argument("--every", choices=FREQUENCIES, required=True)
+    schedule.add_argument("--install", action="store_true", help="append the crontab snippet if crontab is available")
     schedule.add_argument("--json", action="store_true")
+
+    seed = sub.add_parser("seed", help="seed taste from a URL, file, image, or pasted note")
+    _add_workspace_args(seed)
+    seed.add_argument("--url", action="append", default=[], help="repeatable personal-site or page URL")
+    seed.add_argument("--file", action="append", default=[], help="repeatable local file or image path")
+    seed.add_argument("--text", action="append", default=[], help="repeatable pasted note")
+    seed.add_argument("--domain", default="personal")
+    seed.add_argument("--label")
+    seed.add_argument("--caption")
+    seed.add_argument("--json", action="store_true")
+
+    catalog = sub.add_parser("catalog", help="show the taste-file hierarchy, categories, and tags")
+    _add_workspace_args(catalog)
+    catalog.add_argument("--json", action="store_true")
+
+    serve = sub.add_parser("serve", help="open the local taste studio web app")
+    _add_workspace_args(serve)
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=7468)
+    serve.add_argument("--no-tick", action="store_true", help="do not run the in-process harvest ticker")
 
     run = sub.add_parser("run", help="generate or score candidate outputs")
     _add_taste_args(run)
@@ -220,6 +247,9 @@ def _setup_defaults(args: argparse.Namespace) -> argparse.Namespace:
         every="weekly",
         source=[],
         domain=[],
+        seed_url=None,
+        seed_file=None,
+        seed_text=None,
         json=False,
     )
     return defaults
@@ -235,8 +265,11 @@ def _setup(args: argparse.Namespace) -> int:
             frequency=args.every,
             domains=tuple(args.domain) or None,
             sources=tuple(args.source) or None,
+            seed_url=args.seed_url,
+            seed_file=args.seed_file,
+            seed_text=args.seed_text,
             stdin=sys.stdin,
-            stdout=sys.stdout,
+            stdout=None if args.json else sys.stdout,
         )
         record = {
             "workspace": str(result.workspace.root),
@@ -244,6 +277,7 @@ def _setup(args: argparse.Namespace) -> int:
             "enabled_sources": list(result.enabled),
             "report_frequency": result.config.report_frequency,
             "harvested": result.harvested,
+            "seeded": result.seeded,
             "report": str(result.report_path) if result.report_path else None,
             "discovered": [
                 {"id": source.id, "name": source.name, "present": source.present}
@@ -264,11 +298,10 @@ def _setup(args: argparse.Namespace) -> int:
                 print(f"First report: {result.report_path}")
             print()
             print("Next:")
-            print("  nanotaste like PATH          # drop in something you prefer")
-            print("  nanotaste unlike PATH        # drop in something to avoid")
-            print("  nanotaste pick --candidate A --candidate B")
-            print("  nanotaste harvest            # pull sessions and refresh the report")
-            print("  nanotaste report --if-due    # honor the report schedule")
+            print("  nanotaste serve               # local studio for hierarchy, seeds, and harvest")
+            print("  nanotaste seed --url URL      # seed from a personal site or note")
+            print("  nanotaste harvest             # pull sessions and refresh overlays")
+            print("  nanotaste schedule --every weekly --install")
         return 0
     except (OSError, ValueError) as err:
         return _fail("Setup error", err)
@@ -340,6 +373,7 @@ def _learn(args: argparse.Namespace) -> int:
             "signals": str(result.signals_path),
             "taste_created": str(result.taste_created) if result.taste_created else None,
             "taste_applied": str(result.taste_applied) if result.taste_applied else None,
+            "overlays": [str(path) for path in result.overlay_paths],
             "principles": list(result.signals.principles),
             "forbidden": list(result.signals.forbidden),
         }
@@ -369,6 +403,7 @@ def _harvest(args: argparse.Namespace) -> int:
         record = {
             "excerpts": len(ingested.excerpts),
             "proposal": str(learned.proposal_path),
+            "overlays": [str(path) for path in learned.overlay_paths],
             "report": str(report.markdown_path),
             "skipped_report": report.skipped,
         }
@@ -377,6 +412,8 @@ def _harvest(args: argparse.Namespace) -> int:
         else:
             print(f"Harvested {len(ingested.excerpts)} session excerpts")
             print(f"Learned proposal: {learned.proposal_path}")
+            if learned.overlay_paths:
+                print(f"Updated overlays: {len(learned.overlay_paths)}")
             if report.skipped:
                 print("Report not due yet; skipped.")
             else:
@@ -477,14 +514,104 @@ def _schedule(args: argparse.Namespace) -> int:
     try:
         workspace = _require_config(args)
         path = write_schedule(workspace, args.every)
+        installed = False
+        if args.install:
+            installed = _install_crontab(path)
         if args.json:
-            print(json.dumps({"frequency": args.every, "path": str(path)}, indent=2, sort_keys=True))
+            print(json.dumps({"frequency": args.every, "path": str(path), "installed": installed}, indent=2, sort_keys=True))
         else:
-            print(f"Report frequency: {args.every}")
+            print(f"Session harvest frequency: {args.every}")
             print(f"Crontab snippet: {path}")
+            if args.install:
+                print("Crontab install: yes" if installed else "Crontab install skipped or unavailable")
         return 0
     except (OSError, ValueError) as err:
         return _fail("Schedule error", err)
+
+
+def _seed(args: argparse.Namespace) -> int:
+    try:
+        from nanotaste.seed import seed_workspace
+
+        workspace = _require_config(args)
+        records = []
+        for url in args.url:
+            records.append(seed_workspace(workspace, url=url, domain=args.domain, label=args.label))
+        for path in args.file:
+            records.append(
+                seed_workspace(
+                    workspace,
+                    path=Path(path),
+                    domain=args.domain,
+                    label=args.label,
+                    caption=args.caption,
+                )
+            )
+        for text in args.text:
+            records.append(seed_workspace(workspace, text=text, domain=args.domain, label=args.label))
+        if not records:
+            raise ValueError("provide --url, --file, or --text")
+        payload = [item.to_json() for item in records]
+        if args.json:
+            print(json.dumps(payload if len(payload) > 1 else payload[0], indent=2, sort_keys=True))
+        else:
+            for record in records:
+                print(f"Seeded {record.kind} into {record.domain}: {record.label}")
+                print(safe_for_terminal(record.excerpt[:240]))
+        return 0
+    except (OSError, ValueError) as err:
+        return _fail("Seed error", err)
+
+
+def _catalog(args: argparse.Namespace) -> int:
+    try:
+        from nanotaste.catalog import catalog_payload, install_hierarchy
+
+        workspace = _workspace(args)
+        install_hierarchy(workspace)
+        payload = catalog_payload(workspace)
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            for node in payload["nodes"]:
+                flag = "yes" if node["exists"] else "no"
+                tags = ",".join(node["tags"])
+                print(f"{node['title']:<28} {node['kind']:<10} {flag:<4} {node['rule_count']:>3}  {tags}")
+        return 0
+    except (OSError, ValueError) as err:
+        return _fail("Catalog error", err)
+
+
+def _serve(args: argparse.Namespace) -> int:
+    try:
+        from nanotaste.webapp import serve_workspace
+
+        workspace = _workspace(args)
+        server = serve_workspace(workspace, host=args.host, port=args.port, tick=not args.no_tick)
+        print(f"Taste studio: http://{args.host}:{server.server_address[1]}")
+        print("This is the local app, not the marketing site in website/.")
+        server.serve_forever()
+        return 0
+    except (OSError, ValueError, KeyboardInterrupt) as err:
+        if isinstance(err, KeyboardInterrupt):
+            return 0
+        return _fail("Studio error", err)
+
+
+def _install_crontab(snippet_path: Path) -> bool:
+    import subprocess
+
+    try:
+        current = subprocess.run(["crontab", "-l"], check=False, capture_output=True, text=True)
+        existing = current.stdout if current.returncode == 0 else ""
+        addition = snippet_path.read_text(encoding="utf-8")
+        if addition.strip() in existing:
+            return True
+        merged = existing.rstrip() + "\n" + addition
+        installed = subprocess.run(["crontab", "-"], input=merged, check=False, capture_output=True, text=True)
+        return installed.returncode == 0
+    except OSError:
+        return False
 
 
 def _run(args: argparse.Namespace) -> int:
