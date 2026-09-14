@@ -213,6 +213,10 @@ def _assert_under_root(path: Path, root: Path, label: str) -> None:
         root_resolved = root.expanduser().resolve(strict=True)
     except OSError as err:
         raise SecurityInputError(f"{label} root is not readable: {root}") from err
+    path_text = str(path)
+    root_text = str(root_resolved)
+    if path_text != root_text and not path_text.startswith(root_text + os.sep):
+        raise SecurityInputError(f"{label} escapes approved root: {path}")
     try:
         path.relative_to(root_resolved)
     except ValueError as err:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,7 +45,7 @@ def add_example(
     if polarity not in {"like", "unlike"}:
         raise ValueError("polarity must be like or unlike")
     ensure_workspace(workspace)
-    text, source_name = resolve_example_text(item)
+    text, source_name = resolve_example_text(item, roots=(workspace.root, Path.cwd()))
     validate_text_limit(text, MAX_LIKE_FILE_BYTES, f"{polarity} example")
     stem = _safe_stem(label or source_name or polarity)
     folder = workspace.likes_dir if polarity == "like" else workspace.unlikes_dir
@@ -57,17 +58,33 @@ def add_example(
     return PreferenceExample(polarity=polarity, path=path, text=text, domain=domain, label=stem)
 
 
-def resolve_example_text(item: str) -> tuple[str, str | None]:
-    """Read a file path or accept literal text."""
-    path = Path(item)
-    if path.exists():
+def resolve_example_text(item: str, *, roots: tuple[Path, ...] | None = None) -> tuple[str, str | None]:
+    """Read a file under an approved root, or accept literal text."""
+    allowed = tuple(root.expanduser().resolve() for root in (roots or (Path.cwd(),)))
+    located = _existing_file_under_roots(item, allowed)
+    if located is not None:
+        path, root = located
         return (
-            safe_read_text(path, limit_bytes=MAX_LIKE_FILE_BYTES, label="preference example"),
+            safe_read_text(path, root=root, limit_bytes=MAX_LIKE_FILE_BYTES, label="preference example"),
             path.stem,
         )
     if any(sep in item for sep in ("/", "\\")) or item.endswith((".md", ".txt", ".py", ".json")):
         raise ValueError(f"preference file not found: {item}")
     return item, None
+
+
+def _existing_file_under_roots(item: str, roots: tuple[Path, ...]) -> tuple[Path, Path] | None:
+    try:
+        resolved = Path(item).expanduser().resolve(strict=True)
+    except OSError:
+        return None
+    text = str(resolved)
+    for root in roots:
+        prefix = str(root) + os.sep
+        if text == str(root) or text.startswith(prefix):
+            if resolved.is_file():
+                return resolved, root
+    return None
 
 
 def record_pick(
