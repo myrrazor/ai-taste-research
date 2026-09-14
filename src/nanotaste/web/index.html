@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NanoTaste studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <aside>
+    <p class="mark">NanoTaste studio</p>
+    <nav>
+      <button data-view="overview" class="active">Overview</button>
+      <button data-view="hierarchy">Hierarchy</button>
+      <button data-view="seeds">Seed taste</button>
+      <button data-view="sources">Agents</button>
+      <button data-view="report">Report</button>
+    </nav>
+    <p class="aside-note">Local only. This is not the marketing site.</p>
+  </aside>
+  <main>
+    <section id="overview" class="view">
+      <h1>What NanoTaste thinks it knows</h1>
+      <p class="lede">A local studio for the taste index, category files, scheduled session harvests, and operator seeds. Lexical overlays, not a preference model.</p>
+      <div id="status-card" class="card">Loading workspace…</div>
+      <div id="opinion" class="card">Loading what the files currently encode…</div>
+      <div class="row">
+        <button id="harvest-btn" class="primary">Harvest sessions now</button>
+        <label>Schedule
+          <select id="frequency">
+            <option value="daily">daily</option>
+            <option value="weekly" selected>weekly</option>
+            <option value="monthly">monthly</option>
+            <option value="manual">manual</option>
+          </select>
+        </label>
+        <button id="schedule-btn">Save schedule</button>
+      </div>
+      <form id="like-form" class="card">
+        <h2>Drop in a like or unlike</h2>
+        <label>Note
+          <textarea name="text" rows="4" placeholder="Paste a sentence, a bio line, or a snippet you want the critic to prefer or avoid."></textarea>
+        </label>
+        <div class="row">
+          <label>Category
+            <select name="domain">
+              <option value="general">general</option>
+              <option value="writing">writing</option>
+              <option value="code">code</option>
+              <option value="aesthetic">aesthetic</option>
+              <option value="product">product</option>
+              <option value="personal">personal</option>
+              <option value="brand">brand</option>
+              <option value="communication">communication</option>
+              <option value="research">research</option>
+            </select>
+          </label>
+          <button type="submit" class="primary">Store like</button>
+          <button type="submit" id="unlike-btn">Store unlike</button>
+        </div>
+      </form>
+      <pre id="action-log" class="log"></pre>
+    </section>
+    <section id="hierarchy" class="view hidden">
+      <h1>Taste hierarchy</h1>
+      <p>The main file points at seeded category files. Scheduled harvest writes overlays under <code>taste/learned/</code>.</p>
+      <div id="catalog"></div>
+    </section>
+    <section id="seeds" class="view hidden">
+      <h1>Seed the taste files</h1>
+      <p>Drop in a personal site, a file, an image, or a note. NanoTaste extracts text and refreshes the matching overlay.</p>
+      <form id="seed-form" class="card">
+        <label>Category
+          <select name="domain">
+            <option value="personal">personal</option>
+            <option value="writing">writing</option>
+            <option value="code">code</option>
+            <option value="aesthetic">aesthetic</option>
+            <option value="product">product</option>
+            <option value="brand">brand</option>
+            <option value="communication">communication</option>
+            <option value="research">research</option>
+          </select>
+        </label>
+        <label>URL
+          <input name="url" placeholder="https://example.com/about">
+        </label>
+        <label>Note
+          <textarea name="text" rows="5" placeholder="Paste something you like, a bio, or a constraint."></textarea>
+        </label>
+        <label>File or image
+          <input name="file" type="file">
+        </label>
+        <label>Image caption
+          <input name="caption" placeholder="What this picture is supposed to teach the file">
+        </label>
+        <button type="submit" class="primary">Add seed</button>
+      </form>
+      <div id="seed-list"></div>
+    </section>
+    <section id="sources" class="view hidden">
+      <h1>Coding agents</h1>
+      <div id="source-list"></div>
+    </section>
+    <section id="report" class="view hidden">
+      <h1>Latest report</h1>
+      <pre id="report-md" class="report"></pre>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

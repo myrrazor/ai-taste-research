@@ -11,6 +11,14 @@
 - Manual steering with `like`, `unlike`, `pick`, and `prefer`.
 - Manual or scheduled reports via `nanotaste report` and `nanotaste schedule`.
 - Example likes, unlikes, session excerpts, and a sample report in `examples/`.
+- Seeded taste-file hierarchy: `TASTE.md` plus category files for writing,
+  code, aesthetic, product, personal, brand, communication, and research.
+- `nanotaste seed` for personal sites, files, images, and pasted notes.
+- `nanotaste catalog` and a localhost studio (`nanotaste serve`) for hierarchy,
+  tags, seeds, and harvest.
+- First-run schedule prompt and optional seed URL/file/note before the first
+  harvest. `schedule --install` can append the crontab snippet.
+- Static marketing site in `website/`, separate from the local studio.
 
 ## 0.1.0-rc0 - 2026-07-16
 

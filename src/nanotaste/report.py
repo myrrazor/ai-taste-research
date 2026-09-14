@@ -8,10 +8,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from nanotaste.catalog import catalog_payload
 from nanotaste.ingest import load_excerpts
 from nanotaste.learn import LearnedSignals
 from nanotaste.prefer import list_examples
 from nanotaste.security import atomic_write_text
+from nanotaste.seed import list_seeds
 from nanotaste.sources import discover_sources
 from nanotaste.workspace import (
     TasteConfig,
@@ -125,6 +127,8 @@ def build_report_payload(
         "likes": [path.name for path in likes],
         "unlikes": [path.name for path in unlikes],
         "learned": signals.to_json() if signals else None,
+        "catalog": catalog_payload(workspace),
+        "seeds": list_seeds(workspace),
         "recent_runs": _recent_runs(workspace.runs_path),
         "schedule": cron_snippet(workspace, config.report_frequency).strip(),
     }
@@ -149,6 +153,16 @@ def render_report_markdown(payload: dict[str, Any]) -> str:
         run_lines.append(f"- `{run.get('domain', 'general')}` selected score {run.get('score', '?')}: {run.get('text', '')}")
     likes = "\n".join(f"- {name}" for name in payload["likes"]) or "- None yet. Use `nanotaste like PATH`."
     unlikes = "\n".join(f"- {name}" for name in payload["unlikes"]) or "- None yet. Use `nanotaste unlike PATH`."
+    catalog = payload.get("catalog") or {}
+    catalog_lines = []
+    for node in catalog.get("nodes") or []:
+        catalog_lines.append(
+            f"- {node['title']} (`{node['path']}`) · {node['kind']} · {node['rule_count']} rules · "
+            f"{', '.join(node.get('tags') or []) or 'untagged'}"
+        )
+    seed_lines = []
+    for seed in payload.get("seeds") or []:
+        seed_lines.append(f"- {seed.get('kind')} → {seed.get('domain')} · {seed.get('label') or seed.get('origin')}")
     return f"""# NanoTaste taste report
 
 Generated: {payload['generated_at']}
@@ -162,6 +176,8 @@ learned a preference model.
 - Root: `{payload['workspace']}`
 - Taste file: `{payload['taste_file']}` ({'present' if payload['taste_exists'] else 'missing'})
 - Domains: {', '.join(payload['domains'])}
+- Taste catalog nodes: {len((payload.get('catalog') or {}).get('nodes') or [])}
+- Seeds: {len(payload.get('seeds') or [])}
 - Report frequency: `{payload['report_frequency']}`
 - Next scheduled report: {payload['next_report_due'] or 'manual only'}
 - Last ingest: {payload['last_ingest_at'] or 'never'}
@@ -174,6 +190,14 @@ learned a preference model.
 {chr(10).join(source_rows)}
 
 Enabled: {', '.join(payload['enabled_sources']) or 'none'}
+
+## Taste hierarchy
+
+{chr(10).join(catalog_lines) or '- Run `nanotaste catalog` to install the seeded category files.'}
+
+## Operator seeds
+
+{chr(10).join(seed_lines) or '- None yet. Use `nanotaste seed --url URL` or the local studio.'}
 
 ## Harvested history
 
@@ -204,12 +228,13 @@ Enabled: {', '.join(payload['enabled_sources']) or 'none'}
 ## Keep steering this
 
 ```bash
+nanotaste seed --url https://example.com/about
 nanotaste like examples/likes/concrete-release-note.md
 nanotaste unlike examples/unlikes/generic-ai-prose.md
 nanotaste pick --prompt "Write a launch note" --candidate "A" --candidate "B" --choose 1
 nanotaste harvest
-nanotaste report
-nanotaste schedule --every weekly
+nanotaste serve
+nanotaste schedule --every weekly --install
 ```
 
 ## Automation snippet

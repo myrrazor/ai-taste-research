@@ -222,6 +222,11 @@ jobs:
             --home /tmp/nanotaste-ci-home --json
           nanotaste schedule --every weekly --workspace .nanotaste/ci-smoke/workspace \
             --home /tmp/nanotaste-ci-home --json
+          nanotaste seed --text "Prefer short names and concrete bios." \
+            --domain personal --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste catalog --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
 
   artifact-smoke:
     name: Artifact smoke
