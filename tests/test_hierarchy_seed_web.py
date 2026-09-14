@@ -17,6 +17,7 @@ from nanotaste.cli import main
 from nanotaste.discovery import discover_taste_paths
 from nanotaste.seed import list_seeds, seed_texts, seed_workspace
 from nanotaste.setup_wizard import run_setup
+from nanotaste.security import SecurityInputError, validate_loopback_host, validate_seed_filename
 from nanotaste.webapp import serve_workspace
 from nanotaste.workspace import resolve_workspace
 
@@ -183,6 +184,8 @@ class HierarchySeedWebTests(TestCase):
             run_setup(ws, yes=True, harvest=False)
             with self.assertRaises(ValueError):
                 seed_workspace(ws, url="file:///etc/passwd")
+            with self.assertRaises(ValueError):
+                seed_workspace(ws, url="https://user:pass@example.com/about")
 
     def test_interactive_setup_can_seed_from_pasted_note(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -271,6 +274,20 @@ class HierarchySeedWebTests(TestCase):
                 self.assertEqual(missing, 404)
                 bad = _http_status("POST", port, "/api/seed", b"{not-json", {"Content-Type": "application/json"})
                 self.assertEqual(bad, 400)
+                traversal = _http_status(
+                    "POST",
+                    port,
+                    "/api/seed",
+                    json.dumps(
+                        {
+                            "filename": "../secret.txt",
+                            "content": "dGVzdA==",
+                            "domain": "personal",
+                        }
+                    ).encode("utf-8"),
+                    {"Content-Type": "application/json"},
+                )
+                self.assertEqual(traversal, 400)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -327,6 +344,11 @@ class HierarchySeedWebTests(TestCase):
             huge.write_bytes(b"x" * (600 * 1024))
             with self.assertRaises(ValueError):
                 seed_workspace(ws, path=huge)
+            with self.assertRaises(SecurityInputError):
+                validate_seed_filename("../secret.txt")
+            with self.assertRaises(SecurityInputError):
+                validate_loopback_host("0.0.0.0")
+            self.assertEqual(validate_loopback_host("127.0.0.1"), "127.0.0.1")
 
 
 def _http_json_any(method: str, port: int, path: str, payload: dict[str, object] | None = None) -> object:

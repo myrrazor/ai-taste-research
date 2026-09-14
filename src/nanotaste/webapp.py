@@ -21,6 +21,7 @@ from nanotaste.report import generate_report, write_schedule
 from nanotaste.seed import list_seeds, seed_workspace
 from nanotaste.setup_wizard import already_configured, run_setup
 from nanotaste.sources import discover_sources
+from nanotaste.security import validate_loopback_host, validate_seed_filename
 from nanotaste.workspace import (
     TasteWorkspace,
     load_config,
@@ -175,7 +176,7 @@ def serve_workspace(
         install_hierarchy(workspace)
     handler = partial(TasteStudioHandler)
     TasteStudioHandler.workspace = workspace
-    server = ThreadingHTTPServer((host, port), handler)
+    server = ThreadingHTTPServer((validate_loopback_host(host), port), handler)
     if tick:
         thread = threading.Thread(target=_tick_loop, args=(workspace,), daemon=True)
         thread.start()
@@ -238,7 +239,7 @@ def _seed_from_payload(workspace: TasteWorkspace, payload: dict[str, Any]) -> An
         return seed_workspace(workspace, text=str(payload["text"]), domain=domain, label=payload.get("label"))
     if payload.get("filename") and payload.get("content"):
         raw = base64.b64decode(str(payload["content"]))
-        dest = workspace.seed_files_dir / Path(str(payload["filename"])).name
+        dest = workspace.seed_files_dir / validate_seed_filename(str(payload["filename"]))
         dest.write_bytes(raw)
         return seed_workspace(
             workspace,

@@ -37,6 +37,8 @@ MAX_SEED_URL_BYTES = 512 * KIB
 MAX_SEED_ITEMS = 200
 
 DOMAIN_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
+SEED_FILENAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 BIDI_CONTROLS = {
     "\u061c",
     "\u200e",
@@ -65,6 +67,22 @@ def validate_domain_id(domain: str) -> str:
             f"invalid domain {domain!r}; use lowercase letters, numbers, hyphen, or underscore"
         )
     return domain
+
+
+def validate_seed_filename(name: str) -> str:
+    """Return a basename that cannot escape the seed-files directory."""
+    cleaned = Path(name).name
+    if cleaned != name or not SEED_FILENAME_RE.fullmatch(cleaned):
+        raise SecurityInputError("seed filename must be a simple basename")
+    return cleaned
+
+
+def validate_loopback_host(host: str) -> str:
+    """Reject studio binds that would listen on every interface."""
+    cleaned = host.strip().lower()
+    if cleaned not in LOOPBACK_HOSTS:
+        raise SecurityInputError("studio host must be a loopback address")
+    return host.strip()
 
 
 def validate_text_limit(text: str, limit_bytes: int, label: str) -> None:
