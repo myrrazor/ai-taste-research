@@ -27,6 +27,9 @@ class RepositoryPolicyTests(unittest.TestCase):
             if "actions/checkout@" in text:
                 self.assertIn("persist-credentials: false", text, str(workflow))
 
+    def test_dependabot_version_updates_are_not_configured(self) -> None:
+        self.assertFalse((ROOT / ".github" / "dependabot.yml").exists())
+
     def test_workflows_have_no_privileged_or_publication_surface(self) -> None:
         workflow_text = "\n".join(
             path.read_text() for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))

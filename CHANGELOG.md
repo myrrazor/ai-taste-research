@@ -58,10 +58,13 @@ none of these changes add a preference model or make it a selection gate.
   `choose`, and `explain` from prompts.
 - README, release notes, and claim lock state plainly that calibration against
   synthetic drafts is a smoke test, not evidence of alignment.
-
 - Frozen CODEOWNERS bytes, digest, and bound reviewer login now match the
-  live `* @myrrazor` file so weekly Dependabot PRs are not blocked by the
-  governance check.
+  live CODEOWNERS file.
+
+### Removed
+
+- Weekly Dependabot version-update PRs. Dev-tool pins and action SHAs stay
+  manual.
 
 ### Fixed
 
