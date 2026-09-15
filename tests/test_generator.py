@@ -7,9 +7,47 @@ import unittest
 
 from nanotaste.generator import generate_candidates
 from nanotaste.schema import TasteProfile
+from nanotaste.scoring import compare_candidates
+
+EXAMPLE_TASTE = Path(__file__).resolve().parents[1] / "examples" / "TASTE.example.md"
+FILLER_PHRASES = ("in today's fast-paced world", "seamless", "empower", "gradient", "console.log")
 
 
 class GeneratorTests(unittest.TestCase):
+    def test_official_example_never_selects_the_generic_filler_draft(self):
+        profile = TasteProfile.from_paths([EXAMPLE_TASTE])
+        prompts = {
+            "general": "Explain why generic AI prose feels bad.",
+            "writing": "Write a short launch announcement for NanoTaste.",
+            "product": "Define the first useful loop for a taste-calibration tool.",
+            "aesthetic": "Design a landing page hero for a pour-over coffee subscription.",
+            "code": "Implement a parser for TASTE.md sections.",
+        }
+        for domain, prompt in prompts.items():
+            with self.subTest(domain=domain):
+                rules = profile.rules_for(domain)
+                candidates = generate_candidates(prompt, rules, count=3)
+                result = compare_candidates(candidates, profile, domain, prompt)
+
+                self.assertNotEqual(result.selected.index, 0)
+                for phrase in FILLER_PHRASES:
+                    self.assertNotIn(phrase, result.selected.text.lower())
+                self.assertLess(result.all_scores[0].score, result.selected.score)
+                self.assertTrue(
+                    any("forbidden move" in reason for reason in result.all_scores[0].reasons)
+                )
+
+    def test_subject_strips_leading_define_and_describe_verbs(self):
+        rules = TasteProfile.empty().rules_for("product")
+
+        defined = generate_candidates("Define the first useful loop for a tool.", rules)
+        described = generate_candidates("Describe the smallest useful taste file editor", rules)
+
+        self.assertIn("for the first useful loop for a tool:", defined[1])
+        self.assertNotIn("define", defined[1].lower())
+        self.assertIn("the smallest useful taste file editor", described[1])
+        self.assertNotIn("describe", described[1].lower())
+
     def test_generated_candidates_strip_leading_prompt_verb(self):
         profile = TasteProfile.from_text(
             """# TASTE.md

@@ -205,6 +205,154 @@ class TasteScoringTests(unittest.TestCase):
 
         self.assertEqual(result.selected.index, 1)
 
+    def test_forbidden_word_catches_simple_inflections(self):
+        profile = TasteProfile.from_text(
+            """# TASTE.md
+
+## Forbidden Moves
+
+### writing
+- "seamless"
+- "empower"
+- "delve"
+- "floating card"
+"""
+        )
+        hits = {
+            "seamless": "It works seamlessly.",
+            "seamless-ness": "Seamlessness is the goal.",
+            "empower-s": "This empowers teams.",
+            "empower-ed": "Teams felt empowered.",
+            "empower-ing": "An empowering platform.",
+            "delve-s": "It delves into detail.",
+            "delve-d": "We delved deeper.",
+            "delve-ing": "Delving into the landscape.",
+            "floating cards": "Use floating cards for each plan.",
+            "spacing": "Use floating  cards with extra spaces.",
+        }
+        for label, candidate in hits.items():
+            with self.subTest(label=label):
+                result = compare_candidates([candidate, "Plain draft."], profile, "writing")
+                self.assertEqual(result.selected.index, 1)
+                self.assertTrue(
+                    any("forbidden move" in reason for reason in result.all_scores[0].reasons)
+                )
+
+    def test_forbidden_inflection_does_not_swallow_unrelated_words(self):
+        profile = TasteProfile.from_text(
+            """# TASTE.md
+
+## Forbidden Moves
+
+### writing
+- "form"
+- "state"
+- "card"
+- "bad"
+"""
+        )
+        clean = (
+            "The former information was formal and formulaic.",
+            "A statement about the stateless cardigan she discarded.",
+            "Badly written but acceptable.",
+        )
+        for candidate in clean:
+            with self.subTest(candidate=candidate):
+                scored = compare_candidates([candidate, "x"], profile, "writing").all_scores[0]
+                self.assertFalse(
+                    any("forbidden move" in reason for reason in scored.reasons), scored.reasons
+                )
+
+    def test_keyword_stuffing_does_not_beat_concrete_on_brief_draft(self):
+        profile = TasteProfile.from_text(
+            """# TASTE.md
+
+## Anchors
+
+### general
+- Closer to concrete, opinionated builder notes than to generic best-practice prose.
+
+## Principles
+
+### general
+- Specificity beats polish.
+
+## Tradeoffs
+
+### general
+- When clarity and cleverness conflict, choose clarity.
+"""
+        )
+        stuffed = (
+            "Concrete opinionated builder notes. Specificity beats polish. "
+            "Clarity, cleverness conflict, choose clarity."
+        )
+        concrete = (
+            "NanoTaste 0.1 ships a compare command: give it 2 drafts and it prints the pick "
+            "and its reasons in under 1 second."
+        )
+        result = compare_candidates(
+            [stuffed, concrete], profile, "writing", "Write a release note for NanoTaste"
+        )
+
+        self.assertEqual(result.selected.index, 1)
+        stuffed_scored = result.all_scores[0]
+        self.assertLess(stuffed_scored.score, result.all_scores[1].score)
+        self.assertTrue(any("echo guard" in reason for reason in stuffed_scored.reasons))
+
+    def test_verbatim_rule_echo_earns_no_positive_credit(self):
+        profile = TasteProfile.from_text(
+            """# TASTE.md
+
+## Principles
+
+### aesthetic
+- Use real product imagery and clear hierarchy.
+"""
+        )
+        result = compare_candidates(
+            ["Use real product imagery and clear hierarchy.", "One photo, a $49 price, one button."],
+            profile,
+            "aesthetic",
+        )
+
+        self.assertEqual(result.all_scores[0].score, 0)
+        self.assertIn(
+            "-2 echo guard: 5 of 5 eligible words are copied from taste rules",
+            result.all_scores[0].reasons,
+        )
+        self.assertEqual(result.selected.index, 1)
+
+    def test_echo_guard_leaves_ordinary_prose_alone(self):
+        profile = TasteProfile.from_text(
+            """# TASTE.md
+
+## Principles
+
+### writing
+- Prefer concrete drafts and visible decisions.
+"""
+        )
+        result = compare_candidates(
+            [
+                "NanoTaste helps teams compare outputs.",
+                "Run NanoTaste on three concrete drafts and record the decision.",
+            ],
+            profile,
+            "writing",
+            "Write a release note for NanoTaste",
+        )
+
+        winner = result.all_scores[1]
+        self.assertEqual(winner.score, 3)
+        self.assertIn("+2 matches taste: concrete, drafts", winner.reasons)
+        self.assertFalse(any("echo guard" in reason for reason in winner.reasons))
+
+    def test_empty_profile_has_no_taste_sources(self):
+        result = compare_candidates(["a", "b"], TasteProfile.empty(), "general")
+
+        self.assertEqual(result.taste_sources, ())
+
 
 if __name__ == "__main__":
     unittest.main()
