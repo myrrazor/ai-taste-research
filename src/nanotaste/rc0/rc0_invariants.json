@@ -56,12 +56,12 @@
     "codeowners_encoding": "UTF-8",
     "codeowners_line_endings": "LF",
     "codeowners_final_newline": true,
-    "codeowners_blob_sha256": "2e1c312b049fb21e09939ab27c5e50601d558bf99f78b3a507b8a66ab48f192c",
+    "codeowners_blob_sha256": "35d60f56bbc12664b50be6f6d817eda4fb67083828570d70c33260f546c2e307",
     "required_base_branches": ["testing", "main"]
   },
   "reviewer_separation": {
     "pr_author_must_differ_from_reviewer": true,
-    "reviewer_login": "@masterhit",
+    "reviewer_login": "@myrrazor",
     "reviewer_identity_requires_durable_binding": true,
     "self_approval_prohibited": true
   },
