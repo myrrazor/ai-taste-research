@@ -60,7 +60,7 @@ Enable:
 - push protection;
 - dependency graph (required for the Dependency Review check to inspect diffs;
   until it is enabled the workflow stays present but cannot fail closed);
-- Dependabot alerts;
+- Dependabot vulnerability alerts (alerts only; no version-update PRs);
 - CodeQL code scanning;
 - branch rules or rulesets for `main`.
 - private vulnerability reporting with an owner-performed signed route test.
@@ -69,9 +69,7 @@ Document any setting that cannot be enabled because of account or plan limits.
 
 ## Dependency Updates
 
-Dependabot is configured for:
-
-- pip dependencies in `requirements-dev.txt`;
-- GitHub Actions workflow references.
-
-Dependency PRs should run the same required checks as normal code PRs.
+Do not enable Dependabot version-update PRs. Runtime NanoTaste stays
+dependency-free; the four pinned tools in `requirements-dev.txt` and the
+SHA-pinned GitHub Actions are updated only in a reviewed change. Vulnerability
+alerts can stay on without opening pull requests.
