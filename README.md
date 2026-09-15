@@ -8,7 +8,9 @@ This is a pre-alpha research repo, not a preference model or a finished agent. I
 
 ## How it works
 
-`TASTE.md` is ordinary markdown with sections for anchors, principles, tradeoffs, forbidden moves, calibration examples, and update policy. Rules can be general or scoped to a domain such as writing, product, aesthetic, or code. NanoTaste searches upward from the working directory for the file, or you can pass one explicitly with `--taste-file`.
+`TASTE.md` is ordinary markdown with sections for anchors, principles, tradeoffs, forbidden moves, calibration examples, and update policy. Rules can be general or scoped to a domain such as writing, product, aesthetic, or code.
+
+Taste discovery follows fixed rules. With `--taste-file PATH`, that file is loaded (plus a sibling `taste/<domain>.md`, or `<domain>.md` inside `--taste-dir`) and nothing else is searched. Without it, NanoTaste checks the working directory and then each parent directory, nearest first, for `TASTE.md` and `taste/<domain>.md`, and uses the first directory that has either. When rules come from a parent directory, a note is printed on stderr so a wrapper's taste file cannot influence a run silently. When nothing is found, the command fails instead of quietly scoring with no rules; pass `--no-taste` to run an explicit no-rules baseline.
 
 ```text
 TASTE.md + task domain
@@ -29,17 +31,18 @@ You can supply candidates from another model or tool. If you do not, NanoTaste's
 
 The critic is deliberately simple:
 
-- each matching forbidden rule subtracts 3 points;
+- each matching forbidden rule subtracts 3 points; a forbidden word of four or more letters also matches its simple inflections (`-s`, `-es`, `-ed`, `-ing`, `-ly`, `-ness`, and `-d`/`-ing` for words ending in `e`), so `"seamless"` catches `seamlessly` and `"empower"` catches `empowered`, while a match preceded within 50 characters by a negation such as "avoid" or "not" is ignored;
 - eligible word overlap with a positive rule adds 1 or 2 points for that rule, with positive matches capped at 6 points total;
+- positive credit is further capped at the number of eligible words the candidate has that are *not* copied from the rules (the echo guard), so a draft assembled from taste-file vocabulary earns nothing for it;
 - a number, amount, percentage, day, or time unit adds 1 concrete-detail point;
-- sharing an eligible word with the prompt adds 1 stays-on-brief point; and
-- a tie goes to the earlier candidate.
+- sharing a word of five or more letters with the prompt adds 1 stays-on-brief point; and
+- a tie goes to the earlier candidate, and the readable output says so.
 
 Eligible words are four or more characters after a small stop-word filter. The same inputs produce the same score and selection.
 
-That score is not a probability, confidence value, or measure of quality. The critic does not understand intent, learn from feedback, or recognize a good paraphrase unless the words happen to match. Its job is to provide an inspectable baseline that a later experiment can beat.
+That score is not a probability, confidence value, or measure of quality. The critic does not understand intent, learn from feedback, or recognize a good paraphrase unless the words happen to match. The inflection list is a fixed suffix table, not stemming, and the echo guard only stops trivial keyword stuffing; a draft padded with filler around rule words still scores. Its job is to provide an inspectable baseline that a later experiment can beat.
 
-A normal run prints the selected candidate and its score reasons, then appends a JSONL record containing the prompt, normalized domain, taste-file hash, selected candidate, rejected candidates, and their reasons. Pass `--no-record` when you do not want the local record. Edits can also become pending taste-update proposals, but NanoTaste never rewrites `TASTE.md` automatically.
+A normal run prints the selected candidate and its score reasons, then appends a JSONL record containing the prompt, normalized domain, taste-file hash, selected candidate, rejected candidates, and their reasons. Before the record is written, strings that look like credentials (OpenAI/Anthropic-style `sk-` keys, GitHub, AWS, Slack, and Google tokens, JWTs, bearer tokens, PEM private keys, and `api_key=...` style assignments) are replaced with `[REDACTED-...]` markers; terminal output is not altered, and the pattern list is a footgun guard rather than a secret scanner. Pass `--no-record` when you do not want the local record. Edits can also become pending taste-update proposals, but NanoTaste never rewrites `TASTE.md` automatically.
 
 ## Try it
 
@@ -61,6 +64,8 @@ python3.12 -m venv .venv
 python -m pip install .
 ```
 
+Check the install with `nanotaste --version` (prints `nanotaste 0.1.0rc0`) and `nanotaste --help`.
+
 Create `TASTE.md` in your working directory:
 
 ```markdown
@@ -74,7 +79,7 @@ Create `TASTE.md` in your working directory:
 ## Forbidden Moves
 
 ### writing
-- "seamlessly"
+- "seamless"
 ```
 
 Now compare two drafts:
@@ -98,9 +103,15 @@ Selected candidate #1 (score 3)
 Run NanoTaste on three concrete drafts and record the decision.
 ```
 
-The second draft wins because it overlaps with two words in the positive writing rule and stays on the prompt. The first draft is penalized for the literal forbidden phrase. That is the whole claim: the file changed this deterministic lexical comparison. It does not show that NanoTaste agrees with a person.
+The second draft wins because it overlaps with two words in the positive writing rule and stays on the prompt. The first draft is penalized because the forbidden word `seamless` matches `seamlessly`. That is the whole claim: the file changed this deterministic lexical comparison. It does not show that NanoTaste agrees with a person.
 
-The full public template is [`examples/TASTE.example.md`](examples/TASTE.example.md). Run `nanotaste --help` to see the candidate-file, calibration, and update-proposal commands.
+Candidates can also come from files. `nanotaste run --candidate-file draft-a.md --candidate-file draft-b.md ...` scores files (after any inline `--candidate` values, in the order given), and `nanotaste compare --candidates draft-a.md draft-b.md ...` does the same for an existing set of files. Candidate files, and the `--before`/`--after` files of `propose-update`, must be regular UTF-8 files that resolve inside the working directory after following symlinks; `nanotaste compare --candidates /etc/passwd ...` fails instead of echoing the file. Pass `--allow-outside-paths` to read files from elsewhere on purpose. `--taste-file` is always treated as a deliberate choice and may point anywhere.
+
+The full public template is [`examples/TASTE.example.md`](examples/TASTE.example.md). Every command and flag has a description in `nanotaste <command> --help`, including `calibrate prepare`/`calibrate evaluate` for manual calibration packets and `propose-update` for pending taste-update proposals.
+
+## Calibration is synthetic
+
+`nanotaste calibrate prepare` writes a review sheet, a picks template, and NanoTaste's own picks; `nanotaste calibrate evaluate` reports how often a reviewer agreed with those picks. Unless the prompt set supplies its own candidates, the drafts being judged are the built-in generator's synthetic output: one deliberately generic filler draft plus two or three templated concrete ones. The agreement rate therefore measures whether a human and a lexical rule set both dislike the same planted filler. It is a workflow smoke test, not evidence of taste alignment or a preference study, and it should not be quoted as an accuracy result. The starter prompt set in [`data/calibration/starter_prompts.json`](data/calibration/starter_prompts.json) is smoke-test material for the same reason.
 
 ## Claim boundaries
 
@@ -117,10 +128,12 @@ What remains unproven matters more:
 - NanoTaste has not demonstrated human preference alignment.
 - It does not learn or train a preference model.
 - The critic has not been calibrated against held-out human judgments.
-- Starter prompts and synthetic candidates are not research-grade evaluation data.
+- Starter prompts and synthetic candidates are not research-grade evaluation data, and calibration agreement rates against them are not evidence of alignment.
 - Scores and score margins are not probabilities, confidence, or uncertainty estimates.
+- The critic is lexical and can be gamed: the echo guard stops trivial keyword stuffing, not padded stuffing, and the built-in generator's filler draft is only rejected when the loaded rules forbid its phrases for the run's domain.
 - The current calibration bundle does not physically separate reviewer and private data.
-- Upward discovery can read a parent directory's taste file unless you pass an explicit file.
+- Upward discovery can still read a parent directory's taste file; NanoTaste now prints a stderr note when that happens and fails when no taste file exists, but only `--taste-file` pins the source.
+- Record redaction covers a fixed list of credential shapes; anything else you paste into a candidate is stored verbatim.
 - Local tests are not hosted CI evidence, and historical model reviews are advisory snapshots.
 
 The authoritative boundary is [`docs/RC0_CLAIMS.md`](docs/RC0_CLAIMS.md). Any broader result needs new evidence and a separate review.

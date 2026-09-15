@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from nanotaste.discovery import discover_taste_paths
+from nanotaste.discovery import TasteFileNotFoundError, describe_search, discover_taste_paths
 from nanotaste.domains import normalize_domain
 from nanotaste.generator import generate_candidates
 from nanotaste.schema import TasteProfile, TasteRules
@@ -38,23 +38,38 @@ class CandidateGenerator(Protocol):
 
 
 class TasteRouter:
-    """Routes a task to the right taste domain and files."""
+    """Routes a task to the right taste domain and files.
+
+    Missing taste files are an error unless ``no_taste`` is set, which skips discovery
+    entirely and scores against an explicitly empty profile (a no-rules baseline).
+    """
 
     def __init__(
         self,
         cwd: Path | None = None,
         taste_file: Path | None = None,
         taste_dir: Path | None = None,
+        no_taste: bool = False,
     ) -> None:
         self.cwd = cwd or Path.cwd()
         self.taste_file = taste_file
         self.taste_dir = taste_dir
+        self.no_taste = no_taste
 
     def resolve(self, domain: str | None = None) -> TasteContext:
         """Load the taste profile and domain rules for one task."""
         canonical = normalize_domain(domain)
-        paths = discover_taste_paths(self.cwd, canonical, self.taste_file, self.taste_dir)
-        profile = TasteProfile.from_paths(paths) if paths else TasteProfile.empty()
+        paths: list[Path] = []
+        if self.no_taste:
+            profile = TasteProfile.empty()
+        else:
+            paths = discover_taste_paths(self.cwd, canonical, self.taste_file, self.taste_dir)
+            if not paths:
+                raise TasteFileNotFoundError(
+                    f"no taste file found for domain {canonical!r}: "
+                    f"{describe_search(self.cwd, canonical, self.taste_dir)}"
+                )
+            profile = TasteProfile.from_paths(paths)
         return TasteContext(
             domain=canonical,
             profile=profile,
@@ -114,9 +129,11 @@ class TasteAgent:
         cwd: Path | None = None,
         taste_file: Path | None = None,
         taste_dir: Path | None = None,
+        no_taste: bool = False,
     ) -> "TasteAgent":
         """Create an agent that discovers taste files from the supplied paths."""
-        return cls(TasteRouter(cwd=cwd, taste_file=taste_file, taste_dir=taste_dir))
+        router = TasteRouter(cwd=cwd, taste_file=taste_file, taste_dir=taste_dir, no_taste=no_taste)
+        return cls(router)
 
     def run(
         self, prompt: str, domain: str = "general", count: int = 3

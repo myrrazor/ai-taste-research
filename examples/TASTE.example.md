@@ -39,6 +39,9 @@ domains: [general, aesthetic, writing, product, code]
 ### general
 - "delve"
 - "landscape"
+- "In today's fast-paced world"
+- "seamless"
+- "empower"
 
 ### aesthetic
 - "gradient"
@@ -46,9 +49,8 @@ domains: [general, aesthetic, writing, product, code]
 - "decorative blob"
 
 ### writing
-- "In today's fast-paced world"
-- "seamlessly"
-- "empower"
+- "game-changer"
+- "unlock their potential"
 
 ### code
 - "This function is responsible for"
