@@ -1,0 +1,58 @@
+:root {
+  --ink: #1e1914;
+  --paper: #f6f1e8;
+  --card: #fffaf3;
+  --line: #d5cbb8;
+  --accent: #8c2f0d;
+  --muted: #6a6056;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); }
+body {
+  font: 18px/1.55 "Liberation Serif", "DejaVu Serif", Palatino, Georgia, serif;
+}
+header, main, footer { width: min(880px, calc(100% - 40px)); margin: 0 auto; }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28px 0 8px;
+}
+.mark { font-weight: 700; letter-spacing: 0.04em; }
+nav { display: flex; gap: 18px; }
+nav a, footer a, .row a { color: var(--accent); }
+nav a[aria-current="page"] { color: var(--ink); text-decoration: none; }
+.kicker { text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; color: var(--muted); }
+h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.05; margin: 8px 0 16px; }
+h2 { font-size: 28px; margin-top: 0; }
+.lede, figcaption, footer { color: var(--muted); }
+.hero { padding: 36px 0 12px; }
+.row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+.primary {
+  background: var(--ink);
+  color: var(--paper) !important;
+  text-decoration: none;
+  padding: 10px 16px;
+}
+section { padding: 20px 0 28px; }
+.steps { padding-left: 20px; }
+.steps li { margin: 12px 0; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.split article, figure {
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+}
+figure { margin: 16px 0 0; }
+img, video { width: 100%; height: auto; background: #1f1a16; display: block; }
+pre {
+  background: #1f1a16;
+  color: #f6f1e8;
+  padding: 16px 18px;
+  overflow: auto;
+}
+footer { padding: 24px 0 48px; font-size: 15px; }
+@media (max-width: 720px) {
+  .split { grid-template-columns: 1fr; }
+  header { flex-direction: column; align-items: flex-start; gap: 12px; }
+}

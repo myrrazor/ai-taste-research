@@ -32,7 +32,13 @@ python -m venv .venv-smoke
 . .venv-smoke/bin/activate
 python -m pip install dist/*.whl
 nanotaste --help
+nanotaste setup --yes --workspace /tmp/nanotaste-smoke --home /tmp/nanotaste-smoke-home
+nanotaste seed --text "Prefer concrete drafts." --workspace /tmp/nanotaste-smoke --home /tmp/nanotaste-smoke-home
+nanotaste catalog --workspace /tmp/nanotaste-smoke --home /tmp/nanotaste-smoke-home
 ```
+
+The local studio is `nanotaste serve --no-tick`. Do not treat `website/` as
+that app; it is the static marketing site.
 
 ## Branches
 

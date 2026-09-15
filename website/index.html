@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NanoTaste — a local taste file that keeps getting more specific</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <p class="mark">NanoTaste</p>
+    <nav>
+      <a href="index.html" aria-current="page">Product</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="../README.md">Docs</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="kicker">Local research harness · v0.1.0-rc0</p>
+      <h1>Install it. Answer a few prompts. Let it keep pulling the sessions that train the file.</h1>
+      <p class="lede">
+        NanoTaste is a local CLI and studio for a hierarchy of taste files.
+        On first run it discovers your coding agents, asks how often to harvest
+        sessions, and can seed the files from a personal site, pictures, or notes.
+        It has not demonstrated human preference alignment.
+      </p>
+      <div class="row">
+        <a class="primary" href="how-it-works.html">Watch the flow</a>
+        <a href="#install">Install in four commands</a>
+      </div>
+    </section>
+    <section>
+      <h2>What you get on first install</h2>
+      <ol class="steps">
+        <li><strong>Setup asks the useful questions once.</strong> Which agents to integrate, which domains to keep, and how often to pull sessions.</li>
+        <li><strong>A main taste file with category children.</strong> Writing, code, aesthetic, product, personal, brand, communication, and research.</li>
+        <li><strong>A seed box for your own material.</strong> A personal website, files, images, or pasted notes become inspectable overlays.</li>
+        <li><strong>A scheduled harvest.</strong> Daily, weekly, or monthly pulls refresh learned overlays without silently rewriting the seeded files.</li>
+      </ol>
+    </section>
+    <section class="split">
+      <article>
+        <h2>Local studio</h2>
+        <p>After install, <code>nanotaste serve</code> opens a localhost app. You can see the hierarchy, tags, what the files currently encode, add seeds, and run a harvest. It is not this marketing site.</p>
+      </article>
+      <article>
+        <h2>Marketing site</h2>
+        <p>This site is the public explanation: the install loop, the video, and the claim boundary. It does not read your sessions or write taste files.</p>
+      </article>
+    </section>
+    <section id="install">
+      <h2>Get started</h2>
+      <pre><code>python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install .
+nanotaste setup</code></pre>
+      <p>Non-interactive install with a first seed and weekly harvest:</p>
+      <pre><code>nanotaste setup --yes --every weekly --seed-url https://example.com/about
+nanotaste serve</code></pre>
+    </section>
+    <section>
+      <h2>Honest limit</h2>
+      <p>The harvest extracts lexical signals. Scheduled overlays live in <code>taste/learned/</code>. Seeded category files stay reviewable. NanoTaste does not train a preference model, and <strong>has not demonstrated human preference alignment</strong>.</p>
+    </section>
+  </main>
+  <footer>
+    <p><a href="https://github.com/myrrazor/ai-taste-research">github.com/myrrazor/ai-taste-research</a></p>
+  </footer>
+</body>
+</html>
