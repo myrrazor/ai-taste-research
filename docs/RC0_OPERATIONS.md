@@ -84,7 +84,7 @@ closed.
 Local implementation stops before:
 
 1. owner trust-anchor establishment;
-2. immutable `@masterhit` identity and access binding;
+2. immutable `@myrrazor` identity and access binding;
 3. signed governance approval and base-ref mutations;
 4. owner-performed signed security-contact test;
 5. full-history disposition;

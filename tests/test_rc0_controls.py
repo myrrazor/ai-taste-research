@@ -389,14 +389,14 @@ class PolicyTests(unittest.TestCase):
                 "class": "IMPLEMENTATION_INTEGRATION_PR",
                 "merged": True,
                 "author": "automation",
-                "reviewer": "@masterhit",
+                "reviewer": "@myrrazor",
                 "merge_sha": "a" * 40,
             },
             {
                 "class": "PROMOTION_INTEGRATION_PR",
                 "merged": True,
                 "author": "automation",
-                "reviewer": "@masterhit",
+                "reviewer": "@myrrazor",
                 "merge_sha": "b" * 40,
             },
         ]
@@ -412,7 +412,7 @@ class PolicyTests(unittest.TestCase):
 
     def test_self_approval_fails(self) -> None:
         prs = self.integration_prs()
-        prs[0]["author"] = "@masterhit"
+        prs[0]["author"] = "@myrrazor"
         with self.assertRaisesRegex(PolicyError, "self-approval"):
             validate_pr_topology(prs)
 

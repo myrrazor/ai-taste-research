@@ -59,6 +59,10 @@ none of these changes add a preference model or make it a selection gate.
 - README, release notes, and claim lock state plainly that calibration against
   synthetic drafts is a smoke test, not evidence of alignment.
 
+- Frozen CODEOWNERS bytes, digest, and bound reviewer login now match the
+  live `* @myrrazor` file so weekly Dependabot PRs are not blocked by the
+  governance check.
+
 ### Fixed
 
 - RC0 preflight timestamp comparison no longer requires IANA tzdata, so

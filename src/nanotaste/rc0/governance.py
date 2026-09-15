@@ -9,12 +9,7 @@ from typing import Any
 
 from nanotaste.rc0.invariants import load_invariant_manifest
 
-CODEOWNERS_BYTES = (
-    b"* @masterhit\n"
-    b".github/workflows/ @masterhit\n"
-    b".github/dependabot.yml @masterhit\n"
-    b".github/CODEOWNERS @masterhit\n"
-)
+CODEOWNERS_BYTES = b"* @myrrazor\n"
 
 
 class GovernanceError(ValueError):

@@ -38,7 +38,7 @@ class GovernanceTests(unittest.TestCase):
 
     def test_wrong_content_or_line_endings_fail(self) -> None:
         for data in (
-            CODEOWNERS_BYTES.replace(b"@masterhit", b"@other", 1),
+            CODEOWNERS_BYTES.replace(b"@myrrazor", b"@other", 1),
             CODEOWNERS_BYTES.replace(b"\n", b"\r\n"),
             CODEOWNERS_BYTES.rstrip(b"\n"),
         ):
