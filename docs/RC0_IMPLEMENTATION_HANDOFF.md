@@ -85,7 +85,7 @@ Atomic commits:
 ## 4. Important Implementation Details
 
 - The invariant digest is
-  `1eac0ce7fa11e3156b168841d5ce46204173929e4b9863e4bde99abef68f2b6f`.
+  `80a82bf5f0e570a72ac31e3c43fb5580afa1063e9e4f4d68db7955555c825bcf`.
 - The sanitized execution-preflight record was written outside Git and verified with
   digest `d5447debd05f3fc133b7afaab0f3cff5b840fa550e603e606aa8329e13d18676`.
 - That preflight records local-only PASS, 94% observed capacity remaining, 90%

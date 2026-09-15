@@ -8,7 +8,7 @@ from typing import Any
 
 from nanotaste.rc0.canonical import content_digest
 
-EXPECTED_INVARIANT_DIGEST = "1eac0ce7fa11e3156b168841d5ce46204173929e4b9863e4bde99abef68f2b6f"
+EXPECTED_INVARIANT_DIGEST = "80a82bf5f0e570a72ac31e3c43fb5580afa1063e9e4f4d68db7955555c825bcf"
 
 
 class InvariantError(ValueError):

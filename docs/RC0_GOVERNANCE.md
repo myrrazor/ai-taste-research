@@ -11,10 +11,10 @@ The frozen recipe is part of `src/nanotaste/rc0/rc0_invariants.json`:
 - only changed path: `.github/CODEOWNERS`
 - mode: `100644`
 - encoding and line endings: UTF-8, LF, final newline
-- content owner: `@masterhit`
+- content owner: `@myrrazor`
 - required bases: `testing` and `main`
 
 Before execution, the owner must establish and verify the trust anchor, bind
-`@masterhit` to its immutable GitHub identity and qualifying access, sign the governance
+`@myrrazor` to its immutable GitHub identity and qualifying access, sign the governance
 binding, and separately authorize each ref mutation. Plan approval and this local recipe
 do not authorize those actions.

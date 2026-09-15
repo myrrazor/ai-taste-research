@@ -34,8 +34,7 @@ pinned actions.
 ## Pull Request Rules
 
 - Require at least one approving review.
-- Require CODEOWNERS review for `.github/workflows/`, `.github/dependabot.yml`,
-  and `.github/CODEOWNERS`.
+- Require CODEOWNERS review for every path (`* @myrrazor`).
 - Require branches to be up to date before merge.
 - Dismiss stale approvals when protected files change.
 - Block force pushes and branch deletion on `testing` and `main`.
