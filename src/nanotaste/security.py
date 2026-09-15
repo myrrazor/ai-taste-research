@@ -47,6 +47,10 @@ class SecurityInputError(ValueError):
     """Raised when an input violates NanoTaste's local safety policy."""
 
 
+class RootEscapeError(SecurityInputError):
+    """Raised when a path (after symlink resolution) leaves its approved root."""
+
+
 def validate_domain_id(domain: str) -> str:
     """Return a validated domain identifier safe for path construction."""
     if not DOMAIN_RE.fullmatch(domain):
@@ -187,7 +191,9 @@ def _assert_under_root(path: Path, root: Path, label: str) -> None:
     try:
         path.relative_to(root_resolved)
     except ValueError as err:
-        raise SecurityInputError(f"{label} escapes approved root: {path}") from err
+        raise RootEscapeError(
+            f"{label} resolves outside its approved root {root_resolved}: {path}"
+        ) from err
 
 
 def _reject_existing_bad_output(path: Path, label: str) -> None:

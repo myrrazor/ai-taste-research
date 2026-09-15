@@ -1,7 +1,8 @@
 import json
+import os
 import sys
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
@@ -179,6 +180,8 @@ class SecurityTests(unittest.TestCase):
                         "--candidates",
                         str(large),
                         str(small),
+                        "--allow-outside-paths",
+                        "--no-taste",
                         "--no-record",
                     ]
                 )
@@ -194,6 +197,7 @@ class SecurityTests(unittest.TestCase):
                         "writing",
                         "--prompt",
                         "x" * (MAX_PROMPT_BYTES + 1),
+                        "--no-taste",
                         "--no-record",
                     ]
                 )
@@ -251,6 +255,7 @@ class SecurityTests(unittest.TestCase):
             status = main(
                 [
                     "run",
+                    "--no-taste",
                     "--prompt",
                     "Pick one",
                     "--candidate",
@@ -274,6 +279,7 @@ class SecurityTests(unittest.TestCase):
             status = main(
                 [
                     "run",
+                    "--no-taste",
                     "--prompt",
                     "Pick one",
                     "--candidate",
@@ -298,6 +304,7 @@ class SecurityTests(unittest.TestCase):
                 status = main(
                     [
                         "run",
+                        "--no-taste",
                         "--prompt",
                         "Pick one",
                         "--candidate",
@@ -328,12 +335,160 @@ class SecurityTests(unittest.TestCase):
                         "--candidates",
                         str(path),
                         str(path),
+                        "--allow-outside-paths",
+                        "--no-taste",
                         "--no-record",
                     ]
                 )
 
         self.assertEqual(status, 1)
         self.assertIn("not valid UTF-8", error.getvalue())
+
+    def test_compare_refuses_candidate_files_outside_working_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            project = root / "project"
+            project.mkdir()
+            (project / "TASTE.md").write_text("# TASTE.md\n", encoding="utf-8")
+            outside = root / "outside.md"
+            outside.write_text("root:x:0:0:root:/root:/bin/bash", encoding="utf-8")
+            inside = project / "inside.md"
+            inside.write_text("A short on-brief draft.", encoding="utf-8")
+
+            cases = {
+                "absolute": str(outside),
+                "parent-relative": os.path.join("..", "outside.md"),
+            }
+            for label, escaping_path in cases.items():
+                with self.subTest(path=label):
+                    with _working_directory(project):
+                        with redirect_stdout(StringIO()) as stdout, redirect_stderr(
+                            StringIO()
+                        ) as stderr:
+                            status = main(
+                                [
+                                    "compare",
+                                    "--domain",
+                                    "writing",
+                                    "--candidates",
+                                    escaping_path,
+                                    "inside.md",
+                                    "--no-record",
+                                ]
+                            )
+
+                    self.assertEqual(status, 1)
+                    self.assertEqual(stdout.getvalue(), "")
+                    self.assertNotIn("root:x:0:0", stderr.getvalue())
+                    self.assertIn("outside its approved root", stderr.getvalue())
+                    self.assertIn("--allow-outside-paths", stderr.getvalue())
+
+            with _working_directory(project), redirect_stdout(StringIO()) as stdout:
+                status = main(
+                    [
+                        "compare",
+                        "--domain",
+                        "writing",
+                        "--candidates",
+                        str(outside),
+                        "inside.md",
+                        "--allow-outside-paths",
+                        "--no-record",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(status, 0)
+            self.assertIn("root:x:0:0", stdout.getvalue())
+
+    def test_candidate_symlink_escaping_working_directory_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            project = root / "project"
+            project.mkdir()
+            (project / "TASTE.md").write_text("# TASTE.md\n", encoding="utf-8")
+            outside = root / "secret.txt"
+            outside.write_text("hunter2-secret-body", encoding="utf-8")
+            self._symlink_or_skip(outside, project / "link.md")
+            (project / "inside.md").write_text("Inside draft.", encoding="utf-8")
+
+            commands = (
+                ["compare", "--candidates", "link.md", "inside.md", "--no-record"],
+                ["run", "--prompt", "Pick", "--candidate-file", "link.md", "--no-record"],
+                ["propose-update", "--before", "link.md", "--after", "inside.md"],
+            )
+            for argv in commands:
+                with self.subTest(command=argv[0]):
+                    with _working_directory(project):
+                        with redirect_stdout(StringIO()) as stdout, redirect_stderr(
+                            StringIO()
+                        ) as stderr:
+                            status = main(argv)
+
+                    self.assertEqual(status, 1)
+                    self.assertNotIn("hunter2", stdout.getvalue())
+                    self.assertNotIn("hunter2", stderr.getvalue())
+                    self.assertIn("outside its approved root", stderr.getvalue())
+
+    def test_propose_update_refuses_outside_paths_without_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            project = root / "project"
+            project.mkdir()
+            before = root / "before.md"
+            after = root / "after.md"
+            before.write_text("This platform empowers teams.", encoding="utf-8")
+            after.write_text("Compare three drafts.", encoding="utf-8")
+
+            with _working_directory(project), redirect_stderr(StringIO()) as stderr:
+                status = main(
+                    [
+                        "propose-update",
+                        "--before",
+                        str(before),
+                        "--after",
+                        str(after),
+                        "--output-dir",
+                        str(project / "updates"),
+                    ]
+                )
+
+            self.assertEqual(status, 1)
+            self.assertIn("before file resolves outside its approved root", stderr.getvalue())
+            self.assertFalse((project / "updates").exists())
+
+    def test_run_record_redacts_secrets_but_stdout_is_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record_file = Path(tmp) / "runs.jsonl"
+            leaky = (
+                "Call the API with sk-abcdefghijklmnopqrstuvwxyz0123456789 and "
+                "Authorization: Bearer 0123456789abcdefghijklmnopqrstuvwxyz"
+            )
+            with redirect_stdout(StringIO()) as output:
+                status = main(
+                    [
+                        "run",
+                        "--no-taste",
+                        "--prompt",
+                        "Write the API note",
+                        "--candidate",
+                        leaky,
+                        "--candidate",
+                        "plain text",
+                        "--record-file",
+                        str(record_file),
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(status, 0)
+            self.assertIn("sk-abcdefghijklmnopqrstuvwxyz0123456789", output.getvalue())
+            stored = record_file.read_text(encoding="utf-8")
+            self.assertNotIn("sk-abcdefghijklmnopqrstuvwxyz0123456789", stored)
+            self.assertNotIn("0123456789abcdefghijklmnopqrstuvwxyz", stored)
+            record = json.loads(stored)
+            self.assertIn("[REDACTED-api-key]", record["selected_candidate"]["text"])
+            self.assertIn("[REDACTED-bearer-token]", record["selected_candidate"]["text"])
 
     def _symlink_or_skip(self, target: Path, link: Path) -> None:
         try:
@@ -346,6 +501,16 @@ def _rules_markdown(prefix: str, count: int) -> str:
     lines = ["# TASTE.md", "", "## Principles", ""]
     lines.extend(f"- {prefix} rule {index}" for index in range(count))
     return "\n".join(lines) + "\n"
+
+
+@contextmanager
+def _working_directory(path: Path):
+    previous = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
 
 
 if __name__ == "__main__":
