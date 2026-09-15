@@ -28,7 +28,7 @@ python -m build
 For wheel smoke testing:
 
 ```bash
-python -m venv .venv-smoke
+python3 -m venv .venv-smoke
 . .venv-smoke/bin/activate
 python -m pip install dist/*.whl
 nanotaste --help
@@ -42,9 +42,7 @@ that app; it is the static marketing site.
 
 ## Branches
 
-Use one branch per sprint or logical change. This repo follows the staged flow
-documented in `docs/REPOSITORY_RULES.md`: feature branches are reviewed before
-they land in `testing`, and `testing` is promoted to `main` only by the owner.
+Use one branch per sprint or logical change. Open a pull request against `main`.
 
 ## Security Expectations
 
