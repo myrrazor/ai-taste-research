@@ -42,6 +42,19 @@ approved root for that discovery path. For example, an auto-discovered
 `taste/code.md` may be a symlink to another file under the same project root,
 but not to `~/.ssh/config` or another external path.
 
+Opted-in coding-agent discovery reads only source roots the operator enables
+during `nanotaste setup`. Session ingest copies redacted excerpts into
+`.nanotaste/sessions/` and never writes raw history into `TASTE.md`. Home-directory
+roots are operator-selected; NanoTaste does not follow session-file symlinks
+and skips common cache, plugin, and `node_modules` trees.
+
+Operator-initiated seed fetches (`nanotaste seed --url`) retrieve only rebuilt
+http(s) URLs, reject credentials, refuse redirects, cap the response size, and
+store redacted excerpts. They are not a general-purpose crawler. The local
+studio (`nanotaste serve`) binds only to loopback and writes seed uploads under
+a validated basename in the selected workspace. It is not a multi-user web
+service.
+
 Explicit input overrides are treated as deliberate operator choices:
 
 - `--taste-file` may point outside the project, but it must resolve to a
@@ -59,6 +72,9 @@ Explicit input overrides are treated as deliberate operator choices:
 - Prompt-set files, calibration run files, and pick files must resolve to
   regular files. They are schema-validated JSON and their content is never
   echoed, so they are not confined to the working directory.
+- `like` / `unlike` file arguments must sit under the workspace root or the
+  current working directory after normalization. Literal text is still accepted.
+  Paths with `..` or a target outside those roots are rejected.
 
 Taste discovery never succeeds silently with no rules: when neither an explicit
 file nor a discovered `TASTE.md`/`taste/<domain>.md` exists, the command fails
@@ -124,6 +140,9 @@ Limits are byte limits after UTF-8 encoding unless noted otherwise.
 | CLI generated candidate count | 26 |
 | JSONL record line | 4 MiB |
 | Proposed update input text | 512 KiB |
+| Seed file or pasted note | 512 KiB |
+| Seed URL response | 512 KiB |
+| Stored seed records | 200 |
 
 The first version favors small research packets over accepting arbitrary bulk
 data. Larger studies should introduce explicit streaming/import contracts in a

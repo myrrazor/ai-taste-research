@@ -204,6 +204,33 @@ jobs:
             --run .nanotaste/ci-smoke/calibration/starter_run.json \
             --picks .nanotaste/ci-smoke/calibration/human_picks.json \
             --output .nanotaste/ci-smoke/calibration/evaluation.md --json
+          mkdir -p /tmp/nanotaste-ci-home/.cursor/projects/demo
+          printf '%s\n' '{"text":"Build a small parser and return scores with reasons."}' \
+            > /tmp/nanotaste-ci-home/.cursor/projects/demo/chat-session.jsonl
+          nanotaste sources --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste setup --yes --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --every weekly --json
+          nanotaste like examples/likes/concrete-release-note.md \
+            --workspace .nanotaste/ci-smoke/workspace --home /tmp/nanotaste-ci-home --json
+          nanotaste unlike examples/unlikes/generic-ai-prose.md \
+            --workspace .nanotaste/ci-smoke/workspace --home /tmp/nanotaste-ci-home --json
+          nanotaste pick --prompt "Write a launch note" \
+            --candidate "Run three concrete drafts and record the decision." \
+            --candidate "This seamlessly empowers teams." \
+            --choose 1 --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste harvest --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste report --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste schedule --every weekly --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste seed --text "Prefer short names and concrete bios." \
+            --domain personal --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
+          nanotaste catalog --workspace .nanotaste/ci-smoke/workspace \
+            --home /tmp/nanotaste-ci-home --json
 
   artifact-smoke:
     name: Artifact smoke

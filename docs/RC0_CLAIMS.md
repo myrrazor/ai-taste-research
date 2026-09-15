@@ -12,6 +12,15 @@ calibration records.
 - The built-in generator is synthetic and model-free.
 - The starter prompt set exercises the calibration workflow.
 - Taste updates are proposals and are not applied automatically.
+- Local setup can discover coding-agent install paths and ingest opted-in
+  history as redacted lexical excerpts.
+- Learned rules are word-overlap proposals, not a trained preference model.
+- First-run setup can install a taste-file hierarchy, prompt for a harvest
+  schedule, and seed overlays from operator-supplied URLs, files, images, or
+  notes. Scheduled harvest writes `taste/learned/` overlays; seeded category
+  files are not rewritten unless the operator applies a proposal.
+- The local studio is a localhost viewer and editor for that hierarchy. It is
+  not a hosted product and is separate from the static marketing site.
 - The security boundary is the local-file threat model in `docs/THREAT_MODEL.md`.
 
 ## Claims We Do Not Make
