@@ -1,5 +1,5 @@
 # CI and local verification tools. Runtime NanoTaste stays dependency-free.
-build==1.5.0
+build==1.6.1
 coverage==7.14.1
 mypy==2.1.0
 ruff==0.15.18
