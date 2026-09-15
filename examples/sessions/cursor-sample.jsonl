@@ -1,0 +1,4 @@
+{"text": "Implement a small parser and return scores with reasons so tests can prove the behavior."}
+{"message": "Avoid console.log and keep the CLI explicit."}
+{"prompt": "Write a launch note for the harvest command."}
+{"content": "Run the harness on three drafts. If it picks your edit, the taste file is doing work."}

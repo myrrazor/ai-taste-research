@@ -20,6 +20,7 @@ Issues = "https://github.com/myrrazor/ai-taste-research/issues"
 nanotaste = "nanotaste.cli:main"
 
 [tool.setuptools.package-data]
+"nanotaste" = ["data/TASTE.starter.md", "data/taste/*.md", "web/*"]
 "nanotaste.rc0" = ["rc0_invariants.json"]
 
 [tool.pytest.ini_options]

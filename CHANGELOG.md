@@ -2,12 +2,27 @@
 
 ## Unreleased
 
-Fixes for the pain points found by a hostile review pass. NanoTaste stays a
-research harness with a lexical critic; none of these changes add a preference
-model or make it a selection gate.
+Hostile-pass CLI/critic hardening plus first-run harvest, taste hierarchy, and
+the local studio. NanoTaste stays a research harness with a lexical critic;
+none of these changes add a preference model or make it a selection gate.
 
 ### Added
 
+- First-run `nanotaste setup` that discovers local coding agents and can
+  integrate every present source immediately.
+- `nanotaste harvest` to pull opted-in session history, extract lexical taste
+  signals, and write a report.
+- Manual steering with `like`, `unlike`, `pick`, and `prefer`.
+- Manual or scheduled reports via `nanotaste report` and `nanotaste schedule`.
+- Example likes, unlikes, session excerpts, and a sample report in `examples/`.
+- Seeded taste-file hierarchy: `TASTE.md` plus category files for writing,
+  code, aesthetic, product, personal, brand, communication, and research.
+- `nanotaste seed` for personal sites, files, images, and pasted notes.
+- `nanotaste catalog` and a localhost studio (`nanotaste serve`) for hierarchy,
+  tags, seeds, and harvest.
+- First-run schedule prompt and optional seed URL/file/note before the first
+  harvest. `schedule --install` can append the crontab snippet.
+- Static marketing site in `website/`, separate from the local studio.
 - `nanotaste --version` / `-V`, backed by `nanotaste.__version__` (tested against
   `pyproject.toml`).
 - Descriptions for every command and flag in `--help`, plus a taste-discovery and
@@ -52,6 +67,14 @@ model or make it a selection gate.
   so Windows autocrlf cannot fail the digest check.
 - Dependency Review is allowed to error while the repository dependency
   graph setting is disabled.
+- Local studio binds only to loopback, seed filenames stay in the seed
+  directory, and seed URL fetches rebuild a validated http(s) URL and refuse
+  redirects.
+- `like` / `unlike` file paths are opened only after a trusted-root prefix
+  check. CodeQL treats `Path(user).resolve()` as a path-injection sink, so
+  preference examples no longer resolve the operator path before containment.
+  Containment uses `os.path.realpath` so macOS `/var` aliases and Windows
+  8.3 names still match the resolved workspace.
 
 ## 0.1.0-rc0 - 2026-07-16
 

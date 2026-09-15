@@ -25,8 +25,9 @@ def discover_taste_paths(
 
     Discovery rules:
 
-    * ``taste_file`` disables upward discovery. It is loaded together with a companion
-      ``<domain>.md`` from ``taste_dir`` (default: ``taste/`` beside the file).
+    * ``taste_file`` disables upward discovery. It is loaded together with companion
+      ``<domain>.md`` files from ``taste_dir`` (default: ``taste/`` beside the file),
+      including ``taste/learned/<domain>.md``.
     * Otherwise ``cwd`` and then each parent directory is checked, nearest first, for
       ``TASTE.md`` and ``taste/<domain>.md`` (or ``taste_dir/<domain>.md``). The first
       directory that holds either supplies every rule; the walk stops there.
@@ -43,18 +44,9 @@ def discover_taste_paths(
         if taste_dir:
             domain_root = resolve_taste_dir(cwd, taste_dir)
         else:
-            domain_root = base.parent / TASTE_DIR_NAME
-        domain_file = domain_root / f"{normalize_domain(domain)}.md"
-        if domain_file.exists() or domain_file.is_symlink():
-            discovered.append(
-                safe_resolve_file(
-                    domain_file,
-                    root=domain_root,
-                    limit_bytes=MAX_TASTE_FILE_BYTES,
-                    label="domain taste file",
-                )
-            )
-        return discovered
+            domain_root = (base.parent / TASTE_DIR_NAME).expanduser()
+        discovered.extend(_domain_files(domain_root, normalize_domain(domain)))
+        return _dedupe(discovered)
 
     roots = _candidate_roots(cwd)
     explicit_taste_dir = resolve_taste_dir(cwd, taste_dir) if taste_dir else None
@@ -71,16 +63,8 @@ def discover_taste_paths(
                 )
             )
         folder = explicit_taste_dir or root / TASTE_DIR_NAME
-        domain_file = folder / f"{normalize_domain(domain)}.md"
-        if domain_file.exists() or domain_file.is_symlink():
-            paths.append(
-                safe_resolve_file(
-                    domain_file,
-                    root=folder,
-                    limit_bytes=MAX_TASTE_FILE_BYTES,
-                    label="domain taste file",
-                )
-            )
+        if folder.exists():
+            paths.extend(_domain_files(folder, normalize_domain(domain)))
         if paths:
             return _dedupe(paths)
     return []
@@ -101,6 +85,14 @@ def describe_search(cwd: Path, domain: str, taste_dir: Path | None = None) -> st
     )
 
 
+def resolve_taste_dir(cwd: Path, taste_dir: Path) -> Path:
+    """Resolve an explicit taste directory relative to ``cwd`` when it is not absolute."""
+    expanded = taste_dir.expanduser()
+    if expanded.is_absolute():
+        return expanded.resolve()
+    return (cwd.resolve() / expanded).resolve()
+
+
 def _candidate_roots(cwd: Path) -> list[Path]:
     current = cwd.resolve()
     roots = [current]
@@ -119,9 +111,16 @@ def _dedupe(paths: list[Path]) -> list[Path]:
     return result
 
 
-def resolve_taste_dir(cwd: Path, taste_dir: Path) -> Path:
-    """Resolve an explicit taste directory relative to ``cwd`` when it is not absolute."""
-    expanded = taste_dir.expanduser()
-    if expanded.is_absolute():
-        return expanded.resolve()
-    return (cwd.resolve() / expanded).resolve()
+def _domain_files(folder: Path, domain: str) -> list[Path]:
+    files: list[Path] = []
+    for candidate in (folder / f"{domain}.md", folder / "learned" / f"{domain}.md"):
+        if candidate.exists() or candidate.is_symlink():
+            files.append(
+                safe_resolve_file(
+                    candidate,
+                    root=folder,
+                    limit_bytes=MAX_TASTE_FILE_BYTES,
+                    label="domain taste file",
+                )
+            )
+    return files
