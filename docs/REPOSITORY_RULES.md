@@ -61,7 +61,8 @@ Enable:
 
 - secret scanning;
 - push protection;
-- dependency graph;
+- dependency graph (required for the Dependency Review check to inspect diffs;
+  until it is enabled the workflow stays present but cannot fail closed);
 - Dependabot alerts;
 - CodeQL code scanning;
 - branch rules or rulesets for `testing` and `main`.
