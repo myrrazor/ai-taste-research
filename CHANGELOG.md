@@ -44,6 +44,15 @@ model or make it a selection gate.
 - README, release notes, and claim lock state plainly that calibration against
   synthetic drafts is a smoke test, not evidence of alignment.
 
+### Fixed
+
+- RC0 preflight timestamp comparison no longer requires IANA tzdata, so
+  Windows Python 3.14 CI can run without the `tzdata` package.
+- Frozen CODEOWNERS bytes are read from `git show HEAD:.github/CODEOWNERS`
+  so Windows autocrlf cannot fail the digest check.
+- Dependency Review is allowed to error while the repository dependency
+  graph setting is disabled.
+
 ## 0.1.0-rc0 - 2026-07-16
 
 RC0 prepares `0.1.0` as a pre-alpha research scaffold. It does not make a validated

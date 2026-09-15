@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from nanotaste.rc0.contracts import SCHEMAS, seal_record
 from nanotaste.rc0.invariants import load_invariant_manifest
@@ -54,12 +53,8 @@ def build_preflight(observed: PreflightInput) -> dict[str, Any]:
     expected = manifest["controlling_artifacts"]
     failures = []
     try:
-        current = datetime.fromisoformat(
-            observed.created_at.removesuffix("Z") + "+00:00"
-        ).astimezone(ZoneInfo(TIME_ZONE))
-        expires = datetime.fromisoformat(observed.delegation_expires_at).astimezone(
-            ZoneInfo(TIME_ZONE)
-        )
+        current = _as_utc(observed.created_at)
+        expires = _as_utc(observed.delegation_expires_at)
     except ValueError:
         failures.append("invalid execution timestamp")
         current = None
@@ -121,3 +116,11 @@ def build_preflight(observed: PreflightInput) -> dict[str, Any]:
     if failures:
         raise PreflightError("; ".join(failures))
     return record
+
+
+def _as_utc(value: str) -> datetime:
+    """Parse an ISO timestamp without requiring IANA tzdata on Windows."""
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
