@@ -100,7 +100,7 @@ Added `.github/CODEOWNERS` with coverage for:
 - `.github/dependabot.yml`;
 - `.github/CODEOWNERS`.
 
-Assumption: `@masterhit` is the intended repository owner handle. If the GitHub repository uses a different owner/team, update CODEOWNERS before enabling required CODEOWNERS review.
+Assumption: `@myrrazor` is the intended repository owner handle. If the GitHub repository uses a different owner/team, update CODEOWNERS before enabling required CODEOWNERS review.
 
 ### Release And Governance Docs
 
@@ -260,7 +260,7 @@ Remaining low observations:
 ## Assumptions
 
 - Sprint 2 is stacked on Sprint 1 because Sprint 1 has not been merged into a remote branch in this checkout.
-- `@masterhit` is the correct CODEOWNERS handle unless the public GitHub repo uses a different org/team.
+- `@myrrazor` is the correct CODEOWNERS handle unless the public GitHub repo uses a different org/team.
 - Repository settings such as secret scanning, dependency graph, branch protection, and required checks cannot be enabled from this local source-only sprint; they are documented in source for the owner to apply.
 - Python 3.14.6 local verification is acceptable as local evidence; GitHub CI is responsible for the full 3.11-3.14 matrix after a remote exists.
 - No release publishing begins in Sprint 2.
