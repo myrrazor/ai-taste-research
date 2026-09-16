@@ -1,4 +1,4 @@
-# AI Taste Research
+# AI Taste Research aka NanoTaste
 
 Research tooling for testing whether a structured taste file changes how an agent selects and critiques generated outputs.
 
