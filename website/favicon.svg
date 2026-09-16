@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NanoTaste">
+  <rect width="64" height="64" fill="#f6f1e8"/>
+  <rect x="12" y="10" width="40" height="44" fill="#fffaf3" stroke="#1e1914" stroke-width="2"/>
+  <path d="M20 24h24M20 34h16M20 44h12" stroke="#8c2f0d" stroke-width="3"/>
+</svg>

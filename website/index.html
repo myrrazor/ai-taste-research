@@ -4,18 +4,53 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NanoTaste — a local taste file that keeps getting more specific</title>
+  <meta name="description" content="A local Python CLI and localhost studio for a hierarchy of taste files. Setup discovers your coding agents, harvests opted-in sessions, and scores drafts with a deterministic critic. It has not demonstrated human preference alignment.">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f1e8">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nanotaste.vercel.app/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nanotaste.vercel.app/">
+  <meta property="og:title" content="NanoTaste — a local taste file that keeps getting more specific">
+  <meta property="og:description" content="Install it. Answer a few prompts. Let it keep pulling the sessions that train the file. Local only. Not a preference model.">
+  <meta property="og:image" content="https://nanotaste.vercel.app/assets/studio-overview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NanoTaste — a local taste file that keeps getting more specific">
+  <meta name="twitter:description" content="Install it. Answer a few prompts. Let it keep pulling the sessions that train the file. Local only. Not a preference model.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "NanoTaste",
+    "alternateName": "ai-taste-research",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Linux, Windows (Python 3.11+)",
+    "softwareVersion": "0.1.0-rc0",
+    "license": "https://github.com/myrrazor/ai-taste-research/blob/main/LICENSE",
+    "url": "https://nanotaste.vercel.app/",
+    "downloadUrl": "https://github.com/myrrazor/ai-taste-research",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": {
+      "@type": "Organization",
+      "name": "NanoTaste contributors",
+      "url": "https://github.com/myrrazor/ai-taste-research"
+    }
+  }
+  </script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header>
-    <p class="mark">NanoTaste</p>
-    <nav>
+    <p class="mark"><a href="index.html">NanoTaste</a></p>
+    <nav aria-label="Primary">
       <a href="index.html" aria-current="page">Product</a>
       <a href="how-it-works.html">How it works</a>
-      <a href="../README.md">Docs</a>
+      <a href="docs.html">Docs</a>
     </nav>
   </header>
-  <main>
+  <main id="main">
     <section class="hero">
       <p class="kicker">Local research harness · v0.1.0-rc0</p>
       <h1>Install it. Answer a few prompts. Let it keep pulling the sessions that train the file.</h1>
@@ -28,6 +63,7 @@
       <div class="row">
         <a class="primary" href="how-it-works.html">Watch the flow</a>
         <a href="#install">Install in four commands</a>
+        <a href="docs.html">Read the docs</a>
       </div>
     </section>
     <section>
@@ -46,7 +82,7 @@
       </article>
       <article>
         <h2>Marketing site</h2>
-        <p>This site is the public explanation: the install loop, the video, and the claim boundary. It does not read your sessions or write taste files.</p>
+        <p>This site is the public explanation: the install loop, the video, the <a href="docs.html">docs</a>, and the claim boundary. It does not read your sessions or write taste files.</p>
       </article>
     </section>
     <section id="install">
@@ -65,7 +101,13 @@ nanotaste serve</code></pre>
     </section>
   </main>
   <footer>
-    <p><a href="https://github.com/myrrazor/ai-taste-research">github.com/myrrazor/ai-taste-research</a></p>
+    <nav aria-label="Footer">
+      <a href="docs.html">Docs</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://github.com/myrrazor/ai-taste-research">GitHub</a>
+    </nav>
+    <p>MIT licensed. github.com/myrrazor/ai-taste-research</p>
   </footer>
 </body>
 </html>

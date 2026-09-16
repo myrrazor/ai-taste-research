@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NanoTaste privacy</title>
+  <meta name="description" content="This marketing site sets no cookies and runs no analytics. NanoTaste itself is a local CLI; session harvests and taste files stay on your machine.">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f1e8">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nanotaste.vercel.app/privacy">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nanotaste.vercel.app/privacy">
+  <meta property="og:title" content="NanoTaste privacy">
+  <meta property="og:description" content="No cookies, analytics, accounts, or hosted taste files. The CLI keeps records on your machine.">
+  <meta property="og:image" content="https://nanotaste.vercel.app/assets/studio-overview.png">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header>
+    <p class="mark"><a href="index.html">NanoTaste</a></p>
+    <nav aria-label="Primary">
+      <a href="index.html">Product</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="docs.html">Docs</a>
+    </nav>
+  </header>
+  <main id="main">
+    <div class="hero">
+      <p class="kicker">Privacy</p>
+      <h1>No cookies. No account. Nothing from your machine reaches this site.</h1>
+      <p class="lede">This page covers the public website and the local software it describes. Effective 16 September 2026.</p>
+    </div>
+
+    <article class="doc">
+      <h2 id="site">What this website collects</h2>
+      <p>Nothing through the pages themselves. There are no cookies, analytics scripts, advertising pixels, session replay, accounts, payments, or contact forms. Embedded video on How it works is a file served from this same site, not a third-party player.</p>
+      <p>The site is static files hosted on Vercel. Like any web host, Vercel may keep request logs (time, path, IP, user agent) under <a href="https://vercel.com/legal/privacy-policy">Vercel’s privacy policy</a>. This project does not run its own log analysis on those records.</p>
+
+      <h2 id="local">What stays on your computer</h2>
+      <p>NanoTaste is a local Python CLI. Taste files, likes, unlikes, run records, reports, and ingested session excerpts live under the project directory you point it at, usually as <code>TASTE.md</code>, <code>taste/</code>, and <code>.nanotaste/</code>. The localhost studio at <code>127.0.0.1:7468</code> talks only to that machine. This website cannot see any of it.</p>
+      <p>One CLI behavior to know about: unless you pass <code>--taste-file</code>, NanoTaste searches upward from the working directory for <code>TASTE.md</code>, so it can read a parent directory’s taste file.</p>
+
+      <h2 id="harvest">What harvest reads</h2>
+      <p>If you opt a source in during setup, <code>nanotaste harvest</code> (and <code>ingest</code>) reads user-visible session artifacts from that source on disk: Cursor, Claude Code, Codex, Continue, Aider, Windsurf, Cline, Gemini CLI, Zed, OpenHands, Amazon Q, GitHub Copilot, git history, and existing NanoTaste records. It writes redacted excerpts locally. It does not upload them here.</p>
+      <p>Before storage, excerpts replace secret-like spans (tokens, API keys, private key blocks), email addresses, and home-directory usernames, then clip the text. Caps in the current tree: 800 characters per excerpt, 500 excerpts total, 200 files per source, 256&nbsp;KiB per ingest file. Redaction is a filter, not a guarantee. Do not point harvest at material you cannot keep on the machine.</p>
+      <p><code>nanotaste learn --apply</code> is the explicit step that merges learned rules into <code>TASTE.md</code>. Scheduled harvest writes overlays under <code>taste/learned/</code> and does not rewrite seeded category files on its own.</p>
+
+      <h2 id="seeds">Seeds from URLs, files, and notes</h2>
+      <p><code>nanotaste seed --url</code> fetches an http(s) page you name, with a NanoTaste user-agent, and stores a local excerpt. It rejects URLs that carry credentials. File and image seeds stay on disk; images use the caption and filename, not a vision model. Pasted notes are stored as you typed them, after the same redaction pass.</p>
+
+      <h2 id="contact">If you write to the project</h2>
+      <p>Questions go through the public <a href="https://github.com/myrrazor/ai-taste-research/issues">GitHub issue tracker</a>. GitHub’s privacy terms apply. Do not paste personal taste files, private prompts, session logs, or secrets there.</p>
+
+      <h2 id="delete">Deleting local data</h2>
+      <p>There is no site profile to delete. Remove <code>.nanotaste/</code> and, if you want the taste tree gone too, <code>TASTE.md</code> and <code>taste/</code> from the project directory. Uninstalling the package does not delete those files.</p>
+
+      <h2 id="changes">Changes</h2>
+      <p>If this site starts collecting anything, this page will change first. Right now the honest description is: static files, host logs we do not control, and a local program whose records never leave your machine unless you copy them.</p>
+    </article>
+  </main>
+  <footer>
+    <nav aria-label="Footer">
+      <a href="docs.html">Docs</a>
+      <a href="privacy.html" aria-current="page">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://github.com/myrrazor/ai-taste-research">GitHub</a>
+    </nav>
+    <p>MIT licensed research software. Not a hosted service.</p>
+  </footer>
+</body>
+</html>
