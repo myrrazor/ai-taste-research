@@ -1,0 +1,14 @@
+# NanoTaste
+
+> Local research CLI and localhost studio for a hierarchy of taste files. Pre-alpha, MIT licensed, not a preference model.
+
+- Product: https://nanotaste.vercel.app/
+- How it works: https://nanotaste.vercel.app/how-it-works
+- Docs: https://nanotaste.vercel.app/docs
+- Privacy: https://nanotaste.vercel.app/privacy
+- Terms: https://nanotaste.vercel.app/terms
+- Source: https://github.com/myrrazor/ai-taste-research
+
+NanoTaste is a Python 3.11+ CLI installed from a clone of `myrrazor/ai-taste-research`. It is not on PyPI. `nanotaste setup` discovers local coding agents, writes `TASTE.md` plus seeded category files under `taste/`, and can harvest opted-in session history. `nanotaste serve` opens a localhost studio at 127.0.0.1:7468. This marketing site is static and does not read sessions.
+
+The critic is a deterministic lexical scorer. Harvest extracts word-overlap signals into `taste/learned/` overlays. Seeded category files are not rewritten unless you pass `nanotaste learn --apply`. Image seeds use caption and filename; there is no vision model. NanoTaste has not demonstrated human preference alignment. The claim lock is `docs/RC0_CLAIMS.md` in the repository.

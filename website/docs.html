@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NanoTaste docs — setup, harvest, studio, scoring</title>
+  <meta name="description" content="How to install NanoTaste, run first-run setup, seed a taste hierarchy, harvest local coding sessions, open the localhost studio, and score drafts with the deterministic critic.">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f1e8">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nanotaste.vercel.app/docs">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://nanotaste.vercel.app/docs">
+  <meta property="og:title" content="NanoTaste docs — setup, harvest, studio, scoring">
+  <meta property="og:description" content="Install from a clone, run setup, harvest opted-in sessions, open the local studio, and score drafts. Claim lock included.">
+  <meta property="og:image" content="https://nanotaste.vercel.app/assets/studio-overview.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "NanoTaste docs",
+    "description": "Install, first-run setup, taste hierarchy, harvest, studio, scoring, and the RC0 claim lock.",
+    "url": "https://nanotaste.vercel.app/docs",
+    "dateModified": "2026-09-16",
+    "author": {
+      "@type": "Organization",
+      "name": "NanoTaste contributors",
+      "url": "https://github.com/myrrazor/ai-taste-research"
+    }
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header>
+    <p class="mark"><a href="index.html">NanoTaste</a></p>
+    <nav aria-label="Primary">
+      <a href="index.html">Product</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="docs.html" aria-current="page">Docs</a>
+    </nav>
+  </header>
+  <main id="main">
+    <div class="hero">
+      <p class="kicker">Documentation · v0.1.0-rc0</p>
+      <h1>The local loop, written out</h1>
+      <p class="lede">This page is the public manual for the CLI and localhost studio. If it ever disagrees with the repository, trust the repo. A short video of the same first-run path is on <a href="how-it-works.html">How it works</a>.</p>
+    </div>
+
+    <nav class="toc" aria-label="On this page">
+      <h2>On this page</h2>
+      <ol>
+        <li><a href="#what">What it is</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#setup">First-run setup</a></li>
+        <li><a href="#hierarchy">Taste hierarchy</a></li>
+        <li><a href="#seed">Seeding</a></li>
+        <li><a href="#harvest">Harvest and schedule</a></li>
+        <li><a href="#likes">Likes, unlikes, and picks</a></li>
+        <li><a href="#studio">Local studio</a></li>
+        <li><a href="#critic">How the critic scores</a></li>
+        <li><a href="#run">Run, compare, calibrate</a></li>
+        <li><a href="#commands">Command reference</a></li>
+        <li><a href="#files">Where files live</a></li>
+        <li><a href="#claims">Claim lock</a></li>
+        <li><a href="#source">Source and contributing</a></li>
+      </ol>
+    </nav>
+
+    <article class="doc">
+      <h2 id="what">What it is</h2>
+      <p>NanoTaste is a dependency-free Python 3.11+ CLI in the <code>ai-taste-research</code> repository. It loads markdown taste rules, discovers local coding agents, harvests opted-in session history as redacted excerpts, writes a hierarchy of taste files, and scores candidate drafts with a deterministic lexical critic. <code>nanotaste serve</code> opens a localhost studio so you can see the hierarchy without this marketing site ever touching your files.</p>
+      <p>It is not on PyPI. It makes no model calls of its own. The built-in generator, if you do not pass candidates, writes two to four synthetic drafts for smoke tests. Harvest extracts word-overlap signals. That is not training a preference model, and it has not been shown to match human preference.</p>
+
+      <h2 id="install">Install</h2>
+      <p>Clone the repository, make a virtualenv with Python 3.11 or newer, and install from the tree:</p>
+      <pre><code>git clone https://github.com/myrrazor/ai-taste-research.git
+cd ai-taste-research
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install .
+nanotaste setup</code></pre>
+      <p>Global flags on every command: <code>--workspace</code> for the project root (defaults to the current directory) and <code>--home</code> for the home directory used during agent discovery.</p>
+      <p>Running <code>nanotaste</code> with no subcommand starts setup on a TTY when the workspace is new.</p>
+
+      <h2 id="setup">First-run setup</h2>
+      <p><code>nanotaste setup</code> walks the questions once:</p>
+      <ol>
+        <li>Discover local sources that look installed or have history.</li>
+        <li>Ask which of those sources to integrate.</li>
+        <li>Ask how often to pull sessions: <code>manual</code>, <code>daily</code>, <code>weekly</code>, or <code>monthly</code>.</li>
+        <li>Write <code>TASTE.md</code> plus seeded category files under <code>taste/</code>.</li>
+        <li>Optionally take a first seed (URL, file, image, or pasted note) and harvest now.</li>
+      </ol>
+      <p>Non-interactive:</p>
+      <pre><code>nanotaste setup --yes --every weekly --seed-url https://example.com/about</code></pre>
+      <p>Useful flags: <code>--yes</code> accepts defaults and integrates every present source; <code>--no-harvest</code> skips the first pull; <code>--every</code> sets the schedule; <code>--seed-url</code>, <code>--seed-file</code>, and <code>--seed-text</code> supply the first seed.</p>
+      <p>Sources the current tree knows how to look for:</p>
+      <ul>
+        <li>Cursor</li>
+        <li>Claude Code</li>
+        <li>OpenAI Codex</li>
+        <li>Continue</li>
+        <li>Aider</li>
+        <li>Windsurf</li>
+        <li>Cline</li>
+        <li>Gemini CLI</li>
+        <li>Zed</li>
+        <li>OpenHands</li>
+        <li>Amazon Q</li>
+        <li>GitHub Copilot</li>
+        <li>Git history</li>
+        <li>Existing NanoTaste records</li>
+      </ul>
+      <p><code>nanotaste sources</code> lists what is present on this machine. <code>nanotaste status</code> shows workspace setup, opted-in sources, and whether a report is due.</p>
+      <div class="note">
+        <p>Hermes Agent and OpenClaw are named as future work in the claim lock. They are not in the current source list.</p>
+      </div>
+
+      <h2 id="hierarchy">Taste hierarchy</h2>
+      <p>The main file is an index. Category files hold the seeded rules. Scheduled harvest writes overlays under <code>taste/learned/</code> and does not overwrite the seeds unless you pass <code>nanotaste learn --apply</code>.</p>
+      <pre><code>TASTE.md
+taste/writing.md
+taste/code.md
+taste/aesthetic.md
+taste/product.md
+taste/personal.md
+taste/brand.md
+taste/communication.md
+taste/research.md
+taste/learned/*.md</code></pre>
+      <p><code>nanotaste catalog</code> prints the tree, categories, and tags. Add <code>--json</code> if you want to parse it. Packaged seeds ship in the Python package; a documented example tree lives in <code>examples/hierarchy/</code> in the repository.</p>
+      <p><code>TASTE.md</code> itself is ordinary markdown with sections for anchors, principles, tradeoffs, forbidden moves, calibration examples, and update policy. Rules can be general or scoped to a domain such as writing, product, aesthetic, or code. Domain companions under <code>taste/</code> and <code>taste/learned/</code> load with it.</p>
+      <p>Unless you pass <code>--taste-file</code>, NanoTaste searches upward from the working directory for the file, so it can read a parent directory’s taste file.</p>
+
+      <h2 id="seed">Seeding</h2>
+      <p>Seed from a page, a local file or image, or a pasted note. Repeatable flags:</p>
+      <pre><code>nanotaste seed --url https://example.com/about
+nanotaste seed --file ~/Pictures/mood.png --caption "Restrained paper and ink"
+nanotaste seed --text "Prefer short names and concrete bios."</code></pre>
+      <p>URL seeds must be <code>http</code> or <code>https</code> without credentials. The fetch uses a NanoTaste user-agent and stores a local excerpt. Image seeds use the caption and filename; there is no vision model. Caps in the current tree: 512&nbsp;KiB per seed file or URL body, 200 seed items.</p>
+      <p>The CLI and the local studio share this seed box. The marketing site does not.</p>
+
+      <h2 id="harvest">Harvest and schedule</h2>
+      <p><code>nanotaste harvest</code> is the everyday pull: ingest opted-in history, extract lexical signals, refresh learned overlays, and write <code>.nanotaste/reports/latest.md</code>. <code>--if-due</code> skips the report when the schedule says it is not time yet.</p>
+      <p>The pieces also exist as separate commands if you want them unbundled:</p>
+      <ul>
+        <li><code>nanotaste ingest</code> pulls session history into redacted excerpts.</li>
+        <li><code>nanotaste learn</code> extracts taste-rule proposals from history and likes. <code>--apply</code> merges new learned rules into <code>TASTE.md</code>.</li>
+        <li><code>nanotaste report</code> generates a report now, or only if scheduled.</li>
+      </ul>
+      <p>Ingest redacts secret-like spans (tokens, API keys, private key blocks), email addresses, and home-directory usernames, then clips each excerpt. Caps: 800 characters per excerpt, 500 excerpts, 200 files per source, 256&nbsp;KiB per ingest file, 80 git log items. Redaction is a filter. Do not harvest material you cannot keep on the machine.</p>
+      <p>Schedule:</p>
+      <pre><code>nanotaste schedule --every weekly --install</code></pre>
+      <p><code>--install</code> appends a crontab snippet when <code>crontab</code> is available. The snippet is also written to <code>.nanotaste/schedule.cron</code>. A typical line looks like:</p>
+      <pre><code>15 9 * * 1 cd /path/to/your/project &amp;&amp; nanotaste harvest --if-due</code></pre>
+      <p>A checked-in sample report is <code>examples/reports/sample-taste-report.md</code>. A matching learned proposal is <code>examples/learned/proposal.example.md</code>.</p>
+
+      <h2 id="likes">Likes, unlikes, and picks</h2>
+      <p>Drop in an example you prefer or one you want the critic to avoid. The argument can be a file path or literal text:</p>
+      <pre><code>nanotaste like examples/likes/concrete-release-note.md
+nanotaste unlike examples/unlikes/generic-ai-prose.md
+nanotaste prefer --like good.md --unlike bad.md</code></pre>
+      <p>Those land under <code>.nanotaste/likes/</code> and <code>.nanotaste/unlikes/</code>. <code>nanotaste pick</code> chooses the better option from a short list. <code>--choose N</code> is the 1-based winner for non-interactive use:</p>
+      <pre><code>nanotaste pick --prompt "Write a launch note" \
+    --candidate "Run three concrete drafts and record the decision." \
+    --candidate "This seamlessly empowers teams." \
+    --choose 1</code></pre>
+      <p>Picks append to <code>.nanotaste/picks.jsonl</code>. A like is evidence you stored, not an approval that rewrites the seeded files.</p>
+
+      <h2 id="studio">Local studio</h2>
+      <pre><code>nanotaste serve
+# http://127.0.0.1:7468</code></pre>
+      <p>Defaults: host <code>127.0.0.1</code>, port <code>7468</code>. Pass <code>--host</code> and <code>--port</code> if you need to. <code>--no-tick</code> turns off the in-process harvest ticker.</p>
+      <p>The studio shows the hierarchy, tags, what the files currently encode, coding-agent discovery, the latest report, and a seed box. It is a localhost viewer and editor. It is not a hosted product and it is not this marketing site.</p>
+
+      <h2 id="critic">How the critic scores</h2>
+      <p>You can supply candidates from another model or tool. If you do not, NanoTaste’s built-in generator creates two to four deterministic, synthetic drafts. It does not call a model.</p>
+      <pre><code>TASTE.md + category files + learned overlays
+          |
+          v
+   load relevant rules       candidate outputs
+          |                         |
+          +------------+------------+
+                       v
+             deterministic critic
+                       |
+          +------------+-------------+
+          v                          v
+ selected text + reasons     .nanotaste/runs.jsonl</code></pre>
+      <p>The score is deliberately simple:</p>
+      <ul>
+        <li>each matching forbidden rule subtracts 3 points;</li>
+        <li>eligible word overlap with a positive rule adds 1 or 2 points for that rule, with positive matches capped at 6 points total;</li>
+        <li>a number, amount, percentage, day, or time unit adds 1 concrete-detail point;</li>
+        <li>sharing an eligible word with the prompt adds 1 stays-on-brief point;</li>
+        <li>a tie goes to the earlier candidate.</li>
+      </ul>
+      <p>Eligible words are four or more characters after a small stop-word filter. The same inputs produce the same score and selection. That score is not a probability, confidence value, or measure of quality. The critic does not understand intent, train a preference model, or recognize a good paraphrase unless the words happen to match.</p>
+
+      <h2 id="run">Run, compare, calibrate</h2>
+      <p>Compare two drafts against a taste file:</p>
+      <pre><code>nanotaste run \
+  --taste-file TASTE.md \
+  --domain writing \
+  --prompt "Write a release note for NanoTaste" \
+  --candidate "NanoTaste helps teams seamlessly compare outputs." \
+  --candidate "Run NanoTaste on three concrete drafts and record the decision."</code></pre>
+      <p>A real run of that pair selected the second candidate at score 3: +2 for overlapping <code>concrete</code> and <code>drafts</code>, +1 for staying on the prompt, and a penalty on the first draft for the literal forbidden phrase <code>seamlessly</code>. That is the whole claim: the file changed this deterministic lexical comparison. It does not show that NanoTaste agrees with a person.</p>
+      <p><code>run</code> flags worth knowing: <code>--domain</code> (default <code>general</code>), repeatable <code>--candidate</code>, <code>--count</code> for generated drafts (default 3), <code>--record-file</code> (default <code>.nanotaste/runs.jsonl</code>), <code>--no-record</code>, <code>--json</code>.</p>
+      <p><code>nanotaste compare --candidates FILE FILE ...</code> scores existing candidate files the same way. <code>nanotaste propose-update --before FILE --after FILE</code> writes a pending taste-update proposal; NanoTaste never rewrites <code>TASTE.md</code> from that command automatically. Output defaults to <code>.nanotaste/taste-updates</code>.</p>
+      <p>Manual calibration is two steps:</p>
+      <pre><code>nanotaste calibrate prepare --prompt-set PROMPTS --output-dir DIR
+nanotaste calibrate evaluate --run RUN --picks PICKS --output OUT</code></pre>
+      <p>Prepare builds human-review files from a prompt set. Evaluate compares those human picks to the critic. Starter prompts and synthetic candidates are smoke-test data, not research-grade evaluation.</p>
+
+      <h2 id="commands">Command reference</h2>
+      <table class="cmds">
+        <thead>
+          <tr><th>Command</th><th>What it does</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>nanotaste</code></td><td>No subcommand: start setup on a TTY when the workspace is new.</td></tr>
+          <tr><td><code>setup</code></td><td>Discover coding agents and walk through first-run setup.</td></tr>
+          <tr><td><code>status</code></td><td>Show workspace setup, sources, and report schedule.</td></tr>
+          <tr><td><code>sources</code></td><td>List discovered coding agents and history sources.</td></tr>
+          <tr><td><code>ingest</code></td><td>Pull opted-in coding-session history.</td></tr>
+          <tr><td><code>learn</code></td><td>Extract taste-rule proposals. <code>--apply</code> merges into <code>TASTE.md</code>.</td></tr>
+          <tr><td><code>harvest</code></td><td>Ingest, learn, and write a report. <code>--if-due</code> respects the schedule.</td></tr>
+          <tr><td><code>like</code> / <code>unlike</code></td><td>Store an example you prefer or want to avoid.</td></tr>
+          <tr><td><code>pick</code></td><td>Manually choose the better option from a short list.</td></tr>
+          <tr><td><code>prefer</code></td><td>Store one liked example against one disliked example.</td></tr>
+          <tr><td><code>report</code></td><td>Generate a taste report now, or only if scheduled.</td></tr>
+          <tr><td><code>schedule</code></td><td>Set harvest frequency. <code>--install</code> appends crontab when available.</td></tr>
+          <tr><td><code>seed</code></td><td>Seed taste from a URL, file, image, or pasted note.</td></tr>
+          <tr><td><code>catalog</code></td><td>Show the taste-file hierarchy, categories, and tags.</td></tr>
+          <tr><td><code>serve</code></td><td>Open the local studio (default <code>127.0.0.1:7468</code>).</td></tr>
+          <tr><td><code>run</code></td><td>Generate or score candidate outputs.</td></tr>
+          <tr><td><code>compare</code></td><td>Score existing candidate files.</td></tr>
+          <tr><td><code>propose-update</code></td><td>Propose taste updates from a before/after edit.</td></tr>
+          <tr><td><code>calibrate prepare</code></td><td>Create human review files.</td></tr>
+          <tr><td><code>calibrate evaluate</code></td><td>Compare human picks to NanoTaste.</td></tr>
+        </tbody>
+      </table>
+      <p>Many leaves accept <code>--json</code>. <code>nanotaste --help</code> and <code>nanotaste COMMAND --help</code> are the live source if this table drifts.</p>
+
+      <h2 id="files">Where files live</h2>
+      <p>All of this is per project directory unless you pass <code>--workspace</code>.</p>
+      <ul>
+        <li><code>TASTE.md</code> — index file the critic loads.</li>
+        <li><code>taste/*.md</code> — seeded category files.</li>
+        <li><code>taste/learned/</code> — scheduled overlays.</li>
+        <li><code>.nanotaste/config.json</code> — workspace settings.</li>
+        <li><code>.nanotaste/likes/</code> and <code>unlikes/</code> — stored examples.</li>
+        <li><code>.nanotaste/sessions/</code> — redacted excerpts.</li>
+        <li><code>.nanotaste/learned/</code> — learned proposals.</li>
+        <li><code>.nanotaste/reports/</code> — including <code>latest.md</code>.</li>
+        <li><code>.nanotaste/seeds/</code> — copied seed files.</li>
+        <li><code>.nanotaste/picks.jsonl</code> and <code>runs.jsonl</code> — pick and run records.</li>
+        <li><code>.nanotaste/schedule.cron</code> — crontab snippet.</li>
+        <li><code>.nanotaste/taste-updates/</code> — pending update proposals.</li>
+      </ul>
+      <p>Removing the package does not delete these files. Delete the directories yourself when you want them gone. See <a href="privacy.html">privacy</a> for what harvest stores and what this website does not collect.</p>
+
+      <h2 id="claims">Claim lock</h2>
+      <p>RC0 demonstrates workflow mechanics only. It can load markdown taste rules, generate or accept candidates, apply a deterministic lexical score, discover local coding-agent paths, ingest opted-in history as redacted excerpts, install a seeded hierarchy, seed overlays from URLs, files, images, or notes, prepare likes, picks, and reports, and write proposed updates for later review.</p>
+      <p>What remains unproven:</p>
+      <ul>
+        <li>NanoTaste has not demonstrated human preference alignment.</li>
+        <li>It does not learn or train a preference model.</li>
+        <li>The critic has not been calibrated against held-out human judgments.</li>
+        <li>Starter prompts and synthetic candidates are not research-grade evaluation data.</li>
+        <li>Scores and score margins are not probabilities, confidence, or uncertainty estimates.</li>
+        <li>The current calibration bundle does not physically separate reviewer and private data.</li>
+        <li>Upward discovery can read a parent directory’s taste file unless you pass an explicit file.</li>
+        <li>Local tests are not hosted CI evidence.</li>
+        <li>Image seeds use captions and filenames. There is no vision model.</li>
+      </ul>
+      <p>The authoritative boundary is <a href="https://github.com/myrrazor/ai-taste-research/blob/main/docs/RC0_CLAIMS.md">docs/RC0_CLAIMS.md</a>. External replay candidates, blind review, held-out human labels, validated preference claims, Hermes Agent, OpenClaw, PyPI, and GitHub Releases remain future work.</p>
+
+      <h2 id="source">Source and contributing</h2>
+      <p>Code, issues, and the MIT license: <a href="https://github.com/myrrazor/ai-taste-research">github.com/myrrazor/ai-taste-research</a>. Start with <code>CONTRIBUTING.md</code>. Keep issues, examples, and experiment data public-safe: no personal taste files, private prompts, secrets, or strategy notes.</p>
+    </article>
+  </main>
+  <footer>
+    <nav aria-label="Footer">
+      <a href="docs.html" aria-current="page">Docs</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://github.com/myrrazor/ai-taste-research">GitHub</a>
+    </nav>
+    <p>If this page and the repository disagree, the repository wins.</p>
+  </footer>
+</body>
+</html>

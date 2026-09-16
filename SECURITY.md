@@ -10,15 +10,15 @@ The package currently supports Python 3.11 and newer.
 
 ## Reporting A Vulnerability
 
-Use GitHub private vulnerability reporting:
-https://github.com/myrrazor/ai-taste-research/security/advisories/new
+The private vulnerability-reporting route has not yet completed its required
+owner-performed signed test. Do not make this repository public or solicit reports until
+that route is operationally verified and this section names the verified route.
 
-Do not include private taste files, prompts, candidate text, API keys,
-credentials, or full workspace dumps in a public issue.
+Do not include private taste files, prompts, candidate text, API keys, credentials, or
+security-contact message bodies in an issue or repository artifact.
 
-If a public report is necessary, use a minimal title and reproduction that
-does not expose private calibration data, then ask a maintainer for a
-private channel.
+If a public report is necessary, reduce it to a minimal reproduction that does
+not expose private calibration data.
 
 ## Current Security Boundary
 
@@ -29,6 +29,18 @@ The Sprint 1 threat model lives in `docs/THREAT_MODEL.md`. In short:
 - interrupted writes are in scope;
 - fully compromised user/root accounts are out of scope;
 - NanoTaste does not sandbox model output or generated code.
+
+## Repository Settings To Enable
+
+The repository should enable these GitHub settings before accepting outside
+contributions:
+
+- secret scanning and push protection;
+- Dependabot alerts;
+- dependency graph;
+- CodeQL code scanning alerts;
+- branch/ruleset protection described in `docs/REPOSITORY_RULES.md`.
+- a tested private vulnerability-reporting route.
 
 ## CI And Supply Chain
 

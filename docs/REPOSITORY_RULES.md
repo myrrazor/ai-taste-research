@@ -7,12 +7,13 @@ the code diff.
 ## Branch Flow
 
 - Work happens on one feature branch per sprint or logical concern.
-- Pull requests target `main`.
+- Pull requests target `testing`.
+- Only the owner promotes `testing` to `main`.
 - No automatic merge, tag, publish, or release from CI.
 
 ## Required Checks Before Merge
 
-Protect `main` with required status checks:
+Protect `testing` and `main` with required status checks:
 
 - `ubuntu-latest / Python 3.11`
 - `ubuntu-latest / Python 3.12`
@@ -33,12 +34,13 @@ pinned actions.
 ## Pull Request Rules
 
 - Require at least one approving review.
-- Require CODEOWNERS review for every path (`* @myrrazor @MerlinTailor`).
+- Require CODEOWNERS review for every path (`* @myrrazor`).
 - Require branches to be up to date before merge.
 - Dismiss stale approvals when protected files change.
-- Block force pushes and branch deletion on `main`.
-- Code owners (`@myrrazor`, `@MerlinTailor`) may bypass review requirements to merge.
-- Outside contributors need a code-owner approval plus one other approval.
+- Block force pushes and branch deletion on `testing` and `main`.
+- Do not configure bypass actors. Incident recovery still uses a reviewed, separately
+  authorized pull request.
+- The PR author and bound CODEOWNER reviewer must be distinct identities.
 - Exactly one implementation integration PR and one promotion integration PR define
   release provenance. A fork-safety PR is post-visibility and stays unmerged.
 
@@ -60,16 +62,22 @@ Enable:
 - push protection;
 - dependency graph (required for the Dependency Review check to inspect diffs;
   until it is enabled the workflow stays present but cannot fail closed);
-- Dependabot vulnerability alerts (alerts only; no version-update PRs);
+- Dependabot alerts;
 - CodeQL code scanning;
-- branch rules or rulesets for `main`.
+- branch rules or rulesets for `testing` and `main`.
 - private vulnerability reporting with an owner-performed signed route test.
+
+Keep repository visibility private through RC0 review. Tags, releases, packages,
+deployments, environments, Pages, publication secrets, self-hosted runners, and
+publication workflows must remain absent.
 
 Document any setting that cannot be enabled because of account or plan limits.
 
 ## Dependency Updates
 
-Do not enable Dependabot version-update PRs. Runtime NanoTaste stays
-dependency-free; the four pinned tools in `requirements-dev.txt` and the
-SHA-pinned GitHub Actions are updated only in a reviewed change. Vulnerability
-alerts can stay on without opening pull requests.
+Dependabot is configured for:
+
+- pip dependencies in `requirements-dev.txt`;
+- GitHub Actions workflow references.
+
+Dependency PRs should run the same required checks as normal code PRs.
