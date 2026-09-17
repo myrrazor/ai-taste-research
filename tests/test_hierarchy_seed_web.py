@@ -248,6 +248,7 @@ class HierarchySeedWebTests(TestCase):
                 self.assertIn("--ink", css)
                 script = _http_text("GET", port, "/app.js")
                 self.assertIn("loadCatalog", script)
+                self.assertNotIn("innerHTML", script)
                 sources = _http_json_any("GET", port, "/api/sources")
                 self.assertTrue(isinstance(sources, list))
                 seeds = _http_json("GET", port, "/api/seeds")
@@ -274,6 +275,22 @@ class HierarchySeedWebTests(TestCase):
                 self.assertEqual(missing, 404)
                 bad = _http_status("POST", port, "/api/seed", b"{not-json", {"Content-Type": "application/json"})
                 self.assertEqual(bad, 400)
+                empty_setup = _http_status(
+                    "POST", port, "/api/setup", headers={"Content-Type": "application/json"}
+                )
+                self.assertEqual(empty_setup, 400)
+                empty_harvest = _http_status(
+                    "POST", port, "/api/harvest", headers={"Content-Type": "application/json"}
+                )
+                self.assertEqual(empty_harvest, 400)
+                cross_origin = _http_status(
+                    "POST",
+                    port,
+                    "/api/harvest",
+                    b"{}",
+                    {"Content-Type": "application/json", "Origin": "https://attacker.example"},
+                )
+                self.assertEqual(cross_origin, 403)
                 traversal = _http_status(
                     "POST",
                     port,
@@ -355,6 +372,8 @@ def _http_json_any(method: str, port: int, path: str, payload: dict[str, object]
     body = json.dumps(payload).encode("utf-8") if payload is not None else None
     conn = HTTPConnection("127.0.0.1", port, timeout=10)
     headers = {"Content-Type": "application/json"} if body else {}
+    if method == "POST":
+        headers["Origin"] = f"http://127.0.0.1:{port}"
     conn.request(method, path, body=body, headers=headers)
     response = conn.getresponse()
     raw = response.read().decode("utf-8")
@@ -367,7 +386,10 @@ def _http_json_any(method: str, port: int, path: str, payload: dict[str, object]
 
 def _http_status(method: str, port: int, path: str, body: bytes | None = None, headers: dict[str, str] | None = None) -> int:
     conn = HTTPConnection("127.0.0.1", port, timeout=10)
-    conn.request(method, path, body=body, headers=headers or {})
+    request_headers = dict(headers or {})
+    if method == "POST":
+        request_headers.setdefault("Origin", f"http://127.0.0.1:{port}")
+    conn.request(method, path, body=body, headers=request_headers)
     response = conn.getresponse()
     response.read()
     conn.close()
@@ -378,6 +400,8 @@ def _http_json(method: str, port: int, path: str, payload: dict[str, object] | N
     body = json.dumps(payload).encode("utf-8") if payload is not None else None
     conn = HTTPConnection("127.0.0.1", port, timeout=10)
     headers = {"Content-Type": "application/json"} if body else {}
+    if method == "POST":
+        headers["Origin"] = f"http://127.0.0.1:{port}"
     conn.request(method, path, body=body, headers=headers)
     response = conn.getresponse()
     raw = response.read().decode("utf-8")

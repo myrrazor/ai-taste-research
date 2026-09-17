@@ -58,7 +58,7 @@ class SourceSpec:
 
 
 SOURCE_SPECS: tuple[SourceSpec, ...] = (
-    SourceSpec("cursor", "Cursor", (".cursor",), ("/tmp/cursor/cloud-agent-transcripts",), (".cursor",), True),
+    SourceSpec("cursor", "Cursor", (".cursor",), (), (".cursor",), True),
     SourceSpec("claude-code", "Claude Code", (".claude",), (), (), True),
     SourceSpec("codex", "OpenAI Codex", (".codex",), (), (), True),
     SourceSpec("continue", "Continue", (".continue",), (), (), True),

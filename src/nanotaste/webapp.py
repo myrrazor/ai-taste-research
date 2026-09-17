@@ -21,7 +21,7 @@ from nanotaste.report import generate_report, write_schedule
 from nanotaste.seed import list_seeds, seed_workspace
 from nanotaste.setup_wizard import already_configured, run_setup
 from nanotaste.sources import discover_sources
-from nanotaste.security import validate_loopback_host, validate_seed_filename
+from nanotaste.security import LOOPBACK_HOSTS, validate_loopback_host, validate_seed_filename
 from nanotaste.workspace import (
     TasteWorkspace,
     load_config,
@@ -31,6 +31,7 @@ from nanotaste.workspace import (
 )
 
 WEB_FILES = {"index.html": "text/html; charset=utf-8", "styles.css": "text/css", "app.js": "text/javascript"}
+MAX_STUDIO_REQUEST_BYTES = 1024 * 1024
 
 
 class TasteStudioHandler(BaseHTTPRequestHandler):
@@ -83,7 +84,11 @@ class TasteStudioHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         try:
-            payload = self._read_json()
+            self._validate_write_request()
+            payload = self._read_json(require_body=parsed.path in {"/api/setup", "/api/harvest"})
+        except PermissionError as err:
+            self._send_json({"error": str(err)}, 403)
+            return
         except (json.JSONDecodeError, ValueError) as err:
             self._send_json({"error": str(err)}, 400)
             return
@@ -133,12 +138,48 @@ class TasteStudioHandler(BaseHTTPRequestHandler):
             return
         self._send_json({"error": "not found"}, 404)
 
-    def _read_json(self) -> dict[str, Any]:
-        length = int(self.headers.get("Content-Length") or 0)
+    def _validate_write_request(self) -> None:
+        if self.headers.get_content_type() != "application/json":
+            raise ValueError("POST requests require Content-Type: application/json")
+        origin = self.headers.get("Origin")
+        if not origin:
+            raise PermissionError("POST requests require a same-origin Origin header")
+        parsed = urlparse(origin)
+        try:
+            origin_port = parsed.port
+        except ValueError as err:
+            raise PermissionError("POST Origin is invalid") from err
+        server_address = self.server.server_address
+        if not isinstance(server_address, tuple) or len(server_address) < 2:
+            raise PermissionError("studio server address is invalid")
+        server_port = int(server_address[1])
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname not in LOOPBACK_HOSTS
+            or origin_port != server_port
+            or parsed.path not in {"", "/"}
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise PermissionError("POST Origin does not match this loopback studio")
+
+    def _read_json(self, *, require_body: bool = False) -> dict[str, Any]:
+        raw_length = self.headers.get("Content-Length")
+        try:
+            length = int(raw_length or 0)
+        except ValueError as err:
+            raise ValueError("Content-Length must be an integer") from err
         if length <= 0:
+            if require_body:
+                raise ValueError("request body must be a JSON object")
             return {}
+        if length > MAX_STUDIO_REQUEST_BYTES:
+            raise ValueError("request body is too large")
         raw = self.rfile.read(length)
         if not raw:
+            if require_body:
+                raise ValueError("request body must be a JSON object")
             return {}
         data = json.loads(raw.decode("utf-8"))
         if not isinstance(data, dict):

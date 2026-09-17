@@ -11,6 +11,7 @@ import unittest
 
 from nanotaste.cli import main
 from nanotaste.redact import redact_text
+from nanotaste.sources import SOURCE_SPECS
 from nanotaste.workspace import report_is_due, resolve_workspace, load_config_from_mapping
 
 
@@ -202,11 +203,21 @@ class SetupHarvestTests(unittest.TestCase):
     def test_redact_strips_secrets_and_home_paths(self):
         github = "ghp" + "_" + ("abcd" * 6)
         openai = "sk" + "-" + ("abcd" * 6)
-        text = redact_text(f"token {github} and /home/alice/secret {openai}")
+        project_key = "sk" + "-proj-" + ("abcd" * 6)
+        anthropic_key = "sk" + "-ant-api03-" + ("abcd" * 6)
+        text = redact_text(
+            f"token {github} and /home/alice/secret {openai} {project_key} {anthropic_key}"
+        )
         self.assertNotIn(github, text)
         self.assertNotIn(openai, text)
+        self.assertNotIn(project_key, text)
+        self.assertNotIn(anthropic_key, text)
         self.assertNotIn("/home/alice", text)
         self.assertIn("[redacted-secret]", text)
+
+    def test_cursor_discovery_does_not_trust_a_shared_tmp_root(self):
+        cursor = next(spec for spec in SOURCE_SPECS if spec.id == "cursor")
+        self.assertEqual(cursor.extra_roots, ())
 
     def test_sources_json_lists_known_agents(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -609,6 +620,5 @@ class SetupHarvestTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 
 

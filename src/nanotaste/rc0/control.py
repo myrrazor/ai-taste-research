@@ -254,6 +254,8 @@ class ActionLedger:
         """Append one trustworthy terminal event for a started operation."""
         if status not in TERMINAL_STATUSES:
             raise ControlError(f"invalid ledger terminal status: {status}")
+        if status == "OUTCOME_UNKNOWN":
+            raise ControlError("use reconcile() to persist an OUTCOME_UNKNOWN terminal event")
         with ExclusiveLock(self.lock_path):
             state = self._load()
             operation_events = [
@@ -286,42 +288,71 @@ class ActionLedger:
             return event
 
     def reconcile(self, operation_id: str, created_at: str) -> tuple[str, dict[str, Any] | None]:
-        """Map unresolved STARTED or explicit uncertainty to outcome unknown."""
-        state = self._load()
-        events = [
-            event for event in state["events"] if event["payload"]["operation_id"] == operation_id
-        ]
-        if not events:
-            raise ControlError("operation does not exist in the ledger")
-        terminal = next(
-            (event for event in events if event["payload"]["status"] in TERMINAL_STATUSES),
-            None,
-        )
-        if terminal and terminal["payload"]["status"] != "OUTCOME_UNKNOWN":
-            return terminal["payload"]["status"], None
-        started = events[0]
-        outcome = seal_record(
-            OUTCOME_UNKNOWN_SCHEMA,
-            started["attempt_id"],
-            {
-                "operation_id": operation_id,
-                "authorization_digest": started["payload"]["authorization_digest"],
-                "binding_digest": started["payload"]["binding_digest"],
-                "started_event_digest": started["digest"],
-                "ledger_head_digest": state["events"][-1]["digest"],
-                "last_terminal_predecessor": started["payload"]["previous_event_digest"],
-                "interruption_evidence": terminal["digest"] if terminal else "missing-terminal",
-                "external_observations": [],
-                "ambiguity": "external effect cannot be established",
-                "authorization_consumed": True,
-                "no_retry": True,
-                "tool_versions": {"ledger": "nanotaste-hash-chain-ledger/1"},
-                "owner_recovery_required": True,
-                "incident_digest": terminal["digest"] if terminal else started["digest"],
-            },
-            created_at,
-        )
-        return "OUTCOME_UNKNOWN_PRIVATE", outcome
+        """Durably map an unresolved STARTED event to outcome unknown."""
+        with ExclusiveLock(self.lock_path):
+            state = self._load()
+            events = [
+                event
+                for event in state["events"]
+                if event["payload"]["operation_id"] == operation_id
+            ]
+            if not events:
+                raise ControlError("operation does not exist in the ledger")
+            terminal = next(
+                (event for event in events if event["payload"]["status"] in TERMINAL_STATUSES),
+                None,
+            )
+            if terminal and terminal["payload"]["status"] != "OUTCOME_UNKNOWN":
+                return terminal["payload"]["status"], None
+            if terminal:
+                outcome = terminal["payload"]["details"].get("outcome_unknown")
+                if not isinstance(outcome, dict):
+                    raise ControlError("OUTCOME_UNKNOWN event lacks its durable incident record")
+                validate_record(outcome)
+                if outcome["schema"] != OUTCOME_UNKNOWN_SCHEMA:
+                    raise ControlError("OUTCOME_UNKNOWN event contains the wrong incident schema")
+                return "OUTCOME_UNKNOWN_PRIVATE", outcome
+
+            started = events[0]
+            ledger_head = state["events"][-1]["digest"]
+            outcome = seal_record(
+                OUTCOME_UNKNOWN_SCHEMA,
+                started["attempt_id"],
+                {
+                    "operation_id": operation_id,
+                    "authorization_digest": started["payload"]["authorization_digest"],
+                    "binding_digest": started["payload"]["binding_digest"],
+                    "started_event_digest": started["digest"],
+                    "ledger_head_digest": ledger_head,
+                    "last_terminal_predecessor": started["payload"]["previous_event_digest"],
+                    "interruption_evidence": "missing-terminal",
+                    "external_observations": [],
+                    "ambiguity": "external effect cannot be established",
+                    "authorization_consumed": True,
+                    "no_retry": True,
+                    "tool_versions": {"ledger": "nanotaste-hash-chain-ledger/1"},
+                    "owner_recovery_required": True,
+                    "incident_digest": started["digest"],
+                },
+                created_at,
+            )
+            terminal_event = seal_record(
+                LEDGER_SCHEMA,
+                started["attempt_id"],
+                {
+                    "event_id": f"{operation_id}:OUTCOME_UNKNOWN",
+                    "operation_id": operation_id,
+                    "authorization_digest": started["payload"]["authorization_digest"],
+                    "binding_digest": started["payload"]["binding_digest"],
+                    "status": "OUTCOME_UNKNOWN",
+                    "previous_event_digest": ledger_head,
+                    "details": {"outcome_unknown": outcome},
+                },
+                created_at,
+            )
+            state["events"].append(terminal_event)
+            atomic_write_json(self.path, state)
+            return "OUTCOME_UNKNOWN_PRIVATE", outcome
 
     def state(self) -> dict[str, Any]:
         """Return a validated copy of the current ledger state."""

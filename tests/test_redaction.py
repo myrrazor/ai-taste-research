@@ -14,9 +14,17 @@ class RedactionTests(unittest.TestCase):
         # see token-shaped literals in this source file.
         letters = "abcdefghijklmnopqrstuvwxyz"
         pem = "PRIVATE KEY-----"
+        jwt = ".".join(
+            (
+                "eyJ" + "hbGciOiJIUzI1NiJ9",
+                "eyJ" + "zdWIiOiIxMjM0NTY3ODkwIn0",
+                "dGVz" + "dHNpZ25hdHVyZTEyMw",
+            )
+        )
         # (surrounding text template, secret, expected marker)
         cases = {
             "openai": ("key {} ok", f"sk-{letters}0123456789", "api-key"),
+            "openai-legacy-length": ("{}", "sk-abcdefghijklmnop", "api-key"),
             "openai-project": ("{}", f"sk-proj-{letters}0123456789ABCDEFGH", "api-key"),
             "anthropic": ("{}", f"sk-ant-api03-{letters}0123456789", "api-key"),
             "github-classic": (
@@ -34,7 +42,7 @@ class RedactionTests(unittest.TestCase):
             "google": ("{}", f"AIzaSyA-{letters}01234", "google-api-key"),
             "jwt": (
                 "{}",
-                "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dGVzdHNpZ25hdHVyZTEyMw",
+                jwt,
                 "jwt",
             ),
             "bearer": (
