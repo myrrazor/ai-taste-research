@@ -62,6 +62,55 @@ class FinalizationError(ValueError):
     """Raised when review or terminal state would violate the acyclic contract."""
 
 
+def _validate_review_chain(candidate: dict[str, Any], review: dict[str, Any]) -> None:
+    """Validate review semantics even when records were sealed by a caller."""
+    validate_record(candidate)
+    validate_record(review)
+    if candidate["schema"] != CANDIDATE_SCHEMA:
+        raise FinalizationError("review input is not a candidate packet")
+    if review["schema"] != REVIEW_SCHEMA:
+        raise FinalizationError("review input is not a review result")
+    if review["attempt_id"] != candidate["attempt_id"]:
+        raise FinalizationError("review belongs to another attempt")
+    payload = review["payload"]
+    if payload["candidate_packet_digest"] != candidate["digest"]:
+        raise FinalizationError("review references another candidate packet")
+    verdict = payload["verdict"]
+    if verdict not in VERDICTS:
+        raise FinalizationError("review verdict is unsupported")
+    if verdict == "CONDITIONAL_GO_TO_VISIBILITY_AND_FORK_TEST":
+        if set(candidate["payload"]["criteria"].values()) != {"PASS"}:
+            raise FinalizationError("conditional-go requires A-E all PASS")
+        if candidate["payload"]["unresolved_findings"]:
+            raise FinalizationError("conditional-go cannot carry unresolved findings")
+
+
+def _validate_aggregate_chain(
+    candidate: dict[str, Any],
+    review: dict[str, Any],
+    aggregate: dict[str, Any],
+) -> None:
+    """Reject a hand-sealed aggregate that does not follow the fixed review mapping."""
+    _validate_review_chain(candidate, review)
+    validate_record(aggregate)
+    if aggregate["schema"] != AGGREGATE_SCHEMA:
+        raise FinalizationError("aggregate input is not an aggregate candidate")
+    if aggregate["attempt_id"] != candidate["attempt_id"]:
+        raise FinalizationError("aggregate belongs to another attempt")
+    verdict = review["payload"]["verdict"]
+    criterion_f = CRITERION_F[verdict]
+    expected_criteria = {**candidate["payload"]["criteria"], "F": criterion_f}
+    expected = {
+        "criteria": expected_criteria,
+        "verdict": verdict,
+        "criterion_f": criterion_f,
+        "candidate": AGGREGATE_BY_VERDICT[verdict],
+        "derivation_algorithm_version": "nanotaste-review-derivation/1",
+    }
+    if aggregate["payload"] != expected:
+        raise FinalizationError("aggregate does not follow the fixed review derivation")
+
+
 def build_candidate_packet(
     *,
     attempt_id: str,
@@ -136,10 +185,7 @@ def derive_criterion_f(
     candidate: dict[str, Any], review: dict[str, Any], created_at: str
 ) -> dict[str, Any]:
     """Derive F after review; caller-supplied or truthy verdicts are impossible."""
-    validate_record(candidate)
-    validate_record(review)
-    if review["payload"]["candidate_packet_digest"] != candidate["digest"]:
-        raise FinalizationError("review references another candidate packet")
+    _validate_review_chain(candidate, review)
     verdict = review["payload"]["verdict"]
     if verdict not in CRITERION_F:
         raise FinalizationError("review verdict cannot derive criterion F")
@@ -174,8 +220,12 @@ def derive_aggregate_candidate(
     created_at: str,
 ) -> dict[str, Any]:
     """Derive the immutable provisional aggregate without reading a final digest."""
-    for record in (candidate, review, derivation):
-        validate_record(record)
+    _validate_review_chain(candidate, review)
+    validate_record(derivation)
+    if derivation["schema"] != DERIVATION_SCHEMA:
+        raise FinalizationError("criterion F input is not a derivation record")
+    if derivation["attempt_id"] != candidate["attempt_id"]:
+        raise FinalizationError("criterion F derivation belongs to another attempt")
     verdict = review["payload"]["verdict"]
     if derivation["payload"]["verdict"] != verdict:
         raise FinalizationError("criterion F derivation and review verdict differ")
@@ -183,6 +233,14 @@ def derive_aggregate_candidate(
         raise FinalizationError("criterion F derivation references another candidate")
     if derivation["payload"]["review_record_digest"] != review["digest"]:
         raise FinalizationError("criterion F derivation references another review")
+    if derivation["payload"]["edges"] != [
+        ["criteria_a_e", "candidate_packet"],
+        ["candidate_packet", "review_verdict"],
+        ["review_verdict", "criterion_f"],
+    ]:
+        raise FinalizationError("criterion F derivation uses an unsupported graph")
+    if derivation["payload"]["algorithm_version"] != "nanotaste-review-derivation/1":
+        raise FinalizationError("criterion F derivation uses an unsupported algorithm")
     criterion_f = derivation["payload"]["criterion_f"]
     if criterion_f != CRITERION_F[verdict]:
         raise FinalizationError("criterion F does not follow the fixed verdict mapping")
@@ -212,8 +270,7 @@ def build_final_packet_payload(
     created_at: str,
 ) -> dict[str, Any]:
     """Build an immutable payload containing no terminal state or self-digest."""
-    for record in (candidate, review, aggregate):
-        validate_record(record)
+    _validate_aggregate_chain(candidate, review, aggregate)
     validate_acyclic_graph(FINALIZATION_NODES, FINALIZATION_EDGES)
     manifest = load_invariant_manifest()
     payload = {
@@ -308,13 +365,24 @@ def build_terminal_transition(
     created_at: str,
 ) -> dict[str, Any]:
     """Build the durable transition record before any state pointer changes."""
-    for record in (detached, final_payload, candidate, review, aggregate):
+    for record in (detached, final_payload):
         validate_record(record)
+    _validate_aggregate_chain(candidate, review, aggregate)
     verify_detached_digest(final_payload, detached)
+    if final_payload["schema"] != FINAL_PAYLOAD_SCHEMA:
+        raise FinalizationError("transition input is not a final packet payload")
+    if final_payload["attempt_id"] != candidate["attempt_id"]:
+        raise FinalizationError("final payload belongs to another attempt")
     if final_payload["payload"]["candidate_packet_digest"] != candidate["digest"]:
         raise FinalizationError("final payload references another candidate")
+    if final_payload["payload"]["review_record_digest"] != review["digest"]:
+        raise FinalizationError("final payload references another review")
     if final_payload["payload"]["aggregate_record_digest"] != aggregate["digest"]:
         raise FinalizationError("final payload references another aggregate")
+    if final_payload["payload"]["criteria"] != aggregate["payload"]["criteria"]:
+        raise FinalizationError("final payload criteria differ from the reviewed aggregate")
+    if final_payload["payload"]["aggregate_candidate"] != aggregate["payload"]["candidate"]:
+        raise FinalizationError("final payload state differs from the reviewed aggregate")
     state = proposed_terminal_state(aggregate["payload"]["candidate"], preflight_result)
     return seal_record(
         TRANSITION_SCHEMA,

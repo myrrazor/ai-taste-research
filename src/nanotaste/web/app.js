@@ -21,20 +21,45 @@ async function api(path, options) {
   return data;
 }
 
-function show(el, html) {
-  document.getElementById(el).innerHTML = html;
+function element(tag, { className, text } = {}) {
+  const item = document.createElement(tag);
+  if (className) item.className = className;
+  if (text !== undefined) item.textContent = String(text);
+  return item;
+}
+
+function replace(id, ...children) {
+  document.getElementById(id).replaceChildren(...children);
+}
+
+function labeledParagraph(label, value) {
+  const paragraph = element("p");
+  paragraph.append(element("strong", { text: label }), document.createTextNode(` ${value}`));
+  return paragraph;
+}
+
+function tagList(tags) {
+  const list = element("div", { className: "tags" });
+  (tags || []).forEach((tag) => list.append(element("span", { className: "tag", text: tag })));
+  return list;
 }
 
 async function loadStatus() {
   const status = await api("/api/status");
-  show(
+  replace(
     "status-card",
-    `<p><strong>Workspace</strong> ${status.workspace}</p>
-     <p><strong>Configured</strong> ${status.configured ? "yes" : "no"}</p>
-     <p><strong>Sources</strong> ${(status.enabled_sources || []).join(", ") || "none yet"}</p>
-     <p><strong>Schedule</strong> ${status.report_frequency || "unset"} · due ${status.report_due ? "now" : "later"}</p>
-     <p><strong>Last harvest</strong> ${status.last_ingest_at || "never"}</p>
-     <p><strong>Seeds</strong> ${status.seed_count ?? 0} · <strong>Catalog nodes</strong> ${status.catalog_nodes ?? 0}</p>`
+    labeledParagraph("Workspace", status.workspace),
+    labeledParagraph("Configured", status.configured ? "yes" : "no"),
+    labeledParagraph("Sources", (status.enabled_sources || []).join(", ") || "none yet"),
+    labeledParagraph(
+      "Schedule",
+      `${status.report_frequency || "unset"} · due ${status.report_due ? "now" : "later"}`,
+    ),
+    labeledParagraph("Last harvest", status.last_ingest_at || "never"),
+    labeledParagraph(
+      "Seeds",
+      `${status.seed_count ?? 0} · Catalog nodes ${status.catalog_nodes ?? 0}`,
+    ),
   );
   if (status.report_frequency) document.getElementById("frequency").value = status.report_frequency;
 }
@@ -43,63 +68,74 @@ async function loadOpinion() {
   const catalog = await api("/api/catalog");
   const tags = [...new Set(catalog.nodes.flatMap((node) => node.tags || []))];
   const rules = catalog.nodes.reduce((sum, node) => sum + (node.rule_count || 0), 0);
-  show(
+  replace(
     "opinion",
-    `<h2>What the files currently encode</h2>
-     <p>${catalog.nodes.length} files · ${rules} inspectable rules · categories ${catalog.categories.join(", ")}</p>
-     <div class="tags">${tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
-     <p class="lede">This is a lexical reading of your index, category files, and learned overlays. It is not a trained preference model.</p>`
+    element("h2", { text: "What the files currently encode" }),
+    element("p", {
+      text: `${catalog.nodes.length} files · ${rules} inspectable rules · categories ${catalog.categories.join(", ")}`,
+    }),
+    tagList(tags),
+    element("p", {
+      className: "lede",
+      text: "This is a lexical reading of your index, category files, and learned overlays. It is not a trained preference model.",
+    }),
   );
 }
 
 async function loadCatalog() {
   const catalog = await api("/api/catalog");
-  show(
-    "catalog",
-    catalog.nodes
-      .map(
-        (node) => `<article>
-          <h2>${node.title}</h2>
-          <p>${node.summary}</p>
-          <p><code>${node.path}</code> · ${node.kind} · ${node.rule_count} rules · ${node.exists ? "present" : "missing"}</p>
-          <div class="tags">${(node.tags || []).map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
-        </article>`
-      )
-      .join("")
-  );
+  const articles = catalog.nodes.map((node) => {
+    const article = element("article");
+    const details = element("p");
+    details.append(
+      element("code", { text: node.path }),
+      document.createTextNode(
+        ` · ${node.kind} · ${node.rule_count} rules · ${node.exists ? "present" : "missing"}`,
+      ),
+    );
+    article.append(
+      element("h2", { text: node.title }),
+      element("p", { text: node.summary }),
+      details,
+      tagList(node.tags),
+    );
+    return article;
+  });
+  replace("catalog", ...articles);
 }
 
 async function loadSeeds() {
   const data = await api("/api/seeds");
-  show(
-    "seed-list",
-    data.seeds
-      .slice()
-      .reverse()
-      .map(
-        (seed) => `<article>
-          <p><strong>${seed.kind}</strong> → ${seed.domain} · ${seed.label || ""}</p>
-          <p>${(seed.excerpt || "").slice(0, 280)}</p>
-        </article>`
-      )
-      .join("") || "<p>No seeds yet.</p>"
-  );
+  const articles = data.seeds
+    .slice()
+    .reverse()
+    .map((seed) => {
+      const article = element("article");
+      const heading = element("p");
+      heading.append(
+        element("strong", { text: seed.kind }),
+        document.createTextNode(` → ${seed.domain} · ${seed.label || ""}`),
+      );
+      article.append(heading, element("p", { text: (seed.excerpt || "").slice(0, 280) }));
+      return article;
+    });
+  replace("seed-list", ...(articles.length ? articles : [element("p", { text: "No seeds yet." })]));
 }
 
 async function loadSources() {
   const sources = await api("/api/sources");
-  show(
-    "source-list",
-    sources
-      .map(
-        (source) => `<article>
-          <h2>${source.name}</h2>
-          <p>${source.present ? "present" : "not detected"} · ${source.session_files} session files</p>
-          <p>${source.detail}</p>
-        </article>`
-      )
-      .join("")
-  );
+  const articles = sources.map((source) => {
+    const article = element("article");
+    article.append(
+      element("h2", { text: source.name }),
+      element("p", {
+        text: `${source.present ? "present" : "not detected"} · ${source.session_files} session files`,
+      }),
+      element("p", { text: source.detail }),
+    );
+    return article;
+  });
+  replace("source-list", ...articles);
 }
 
 async function loadReport() {
@@ -109,7 +145,11 @@ async function loadReport() {
 
 document.getElementById("harvest-btn").addEventListener("click", async () => {
   try {
-    const result = await api("/api/harvest", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const result = await api("/api/harvest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
     log.textContent = JSON.stringify(result, null, 2);
     await loadStatus();
     await loadOpinion();
@@ -186,5 +226,5 @@ document.getElementById("seed-form").addEventListener("submit", async (event) =>
 });
 
 Promise.all([loadStatus(), loadOpinion()]).catch((err) => {
-  show("status-card", `<p>${String(err)}</p>`);
+  replace("status-card", element("p", { text: String(err) }));
 });

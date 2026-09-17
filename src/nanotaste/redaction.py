@@ -9,6 +9,7 @@ unchanged. This is a footgun guard for local JSONL records, not a secret scanner
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 REDACTED_FORMAT = "[REDACTED-{kind}]"
@@ -27,10 +28,10 @@ SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private-key", _PRIVATE_KEY_BLOCK),
     # OpenAI/Anthropic-style keys: sk-..., sk-proj-..., sk-ant-...; no leading word char
     # so "risk-adjusted" or "desk-based" never match.
-    ("api-key", re.compile(r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}")),
+    ("api-key", re.compile(r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{16,}")),
     (
         "github-token",
-        re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})\b"),
+        re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,})\b"),
     ),
     ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
     ("slack-token", re.compile(r"\bxox[abeprs]-[A-Za-z0-9-]{10,}\b")),
@@ -42,9 +43,20 @@ SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 
 def redact_secrets(text: str) -> str:
     """Replace secret-looking substrings with ``[REDACTED-<kind>]`` markers."""
+    return replace_secrets(text, lambda kind: REDACTED_FORMAT.format(kind=kind))
+
+
+def replace_secrets(text: str, replacement: Callable[[str], str]) -> str:
+    """Replace every supported secret shape using one shared pattern set."""
     for kind, pattern in SECRET_PATTERNS:
-        text = pattern.sub(REDACTED_FORMAT.format(kind=kind), text)
-    return _SECRET_ASSIGNMENT.sub(_redact_assignment_value, text)
+        def replace_match(_match: re.Match[str], secret_kind: str = kind) -> str:
+            return replacement(secret_kind)
+
+        text = pattern.sub(replace_match, text)
+    return _SECRET_ASSIGNMENT.sub(
+        lambda match: _redact_assignment_value(match, replacement("assigned-secret")),
+        text,
+    )
 
 
 def redact_payload(value: Any) -> Any:
@@ -58,7 +70,7 @@ def redact_payload(value: Any) -> Any:
     return value
 
 
-def _redact_assignment_value(match: re.Match[str]) -> str:
+def _redact_assignment_value(match: re.Match[str], replacement: str) -> str:
     key, separator, quote, _value = match.groups()
     # Any closing quote sits after the match and is left in place.
-    return f"{key}{separator}{quote}{REDACTED_FORMAT.format(kind='assigned-secret')}"
+    return f"{key}{separator}{quote}{replacement}"

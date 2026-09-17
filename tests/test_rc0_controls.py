@@ -302,6 +302,20 @@ class BindingAuthorizationLedgerTests(unittest.TestCase):
             self.assertIsNotNone(outcome)
             self.assertTrue(outcome["payload"]["authorization_consumed"])
             self.assertTrue(outcome["payload"]["no_retry"])
+            persisted = ledger.state()["events"][-1]
+            self.assertEqual(persisted["payload"]["status"], "OUTCOME_UNKNOWN")
+            self.assertEqual(
+                persisted["payload"]["details"]["outcome_unknown"]["digest"],
+                outcome["digest"],
+            )
+            self.assertEqual(ledger.reconcile("op-001", LATER), (state, outcome))
+            with self.assertRaisesRegex(ControlError, "terminal event"):
+                ledger.finish(
+                    "op-001",
+                    "SUCCEEDED",
+                    attempt_id="attempt-001",
+                    created_at=LATER,
+                )
 
     def test_reused_nonce_or_operation_id_fails(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -492,6 +506,60 @@ class ReviewFinalizationTests(unittest.TestCase):
                 _, _, derivation, aggregate, _, _ = complete_review_path(verdict)
                 self.assertEqual(derivation["payload"]["criterion_f"], values[0])
                 self.assertEqual(aggregate["payload"]["candidate"], values[1])
+
+    def test_hand_sealed_review_cannot_force_f_pass(self) -> None:
+        candidate = build_candidate_packet(
+            attempt_id="attempt-001",
+            criteria={"A": "FAIL", **{letter: "PASS" for letter in "BCDE"}},
+            release_sha="a" * 40,
+            evidence_digests={},
+            unresolved_findings=["criterion A failed"],
+            tool_versions={"nanotaste": "0.1.0", "python": "3.14", "gstack": "0.7.1"},
+            created_at=NOW_TEXT,
+        )
+        review = seal_record(
+            SCHEMAS[17],
+            "attempt-001",
+            {
+                "candidate_packet_digest": candidate["digest"],
+                "verdict": "CONDITIONAL_GO_TO_VISIBILITY_AND_FORK_TEST",
+                "findings": [],
+                "reviewer": "hand-sealed",
+                "reviewed_at": NOW_TEXT,
+                "tool_versions": {"gstack": "0.7.1"},
+            },
+            NOW_TEXT,
+        )
+        with self.assertRaisesRegex(FinalizationError, "A-E all PASS"):
+            derive_criterion_f(candidate, review, NOW_TEXT)
+
+    def test_hand_sealed_aggregate_cannot_force_f_pass(self) -> None:
+        candidate, review, _derivation, aggregate, _payload, _detached = complete_review_path(
+            "NO_GO"
+        )
+        forged = seal_record(
+            SCHEMAS[18],
+            "attempt-001",
+            {
+                "criteria": {**candidate["payload"]["criteria"], "F": "PASS"},
+                "verdict": "NO_GO",
+                "criterion_f": "PASS",
+                "candidate": "READY_FOR_PACKET_FINALIZATION",
+                "derivation_algorithm_version": "nanotaste-review-derivation/1",
+            },
+            NOW_TEXT,
+        )
+        with self.assertRaisesRegex(FinalizationError, "fixed review derivation"):
+            build_final_packet_payload(
+                candidate,
+                review,
+                forged,
+                evidence_manifest={},
+                source={"branch": "testing", "commit": "a" * 40},
+                tool_versions={"nanotaste": "0.1.0"},
+                created_at=NOW_TEXT,
+            )
+        self.assertEqual(aggregate["payload"]["criterion_f"], "FAIL")
 
     def test_detached_digest_detects_payload_mutation(self) -> None:
         _, _, _, _, final_payload, detached = complete_review_path()
